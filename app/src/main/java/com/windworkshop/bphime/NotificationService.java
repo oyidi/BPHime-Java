@@ -1,15 +1,12 @@
 package com.windworkshop.bphime;
 
-import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
@@ -35,14 +32,38 @@ public class NotificationService extends Service {
     int NEW_DANMU = 10;
     NotificationManagerCompat notificationManager;
     NotificationCompat.Builder builder;
-    Messenger clientMessenger;
-    Messenger mMessenger;
-    ServiceMessageHandler handler = new ServiceMessageHandler(this);
+    Handler handler = new Handler();
     @Override
     public IBinder onBind(Intent intent) {
-        mMessenger = new Messenger(handler);
-        return mMessenger.getBinder();
+        return null;
     }
+
+    BroadcastReceiver clientPing = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int action = intent.getIntExtra("action", 0);
+
+            if(action == START_CONNECTION) {
+                if(hasStart == false){
+                    roomId = intent.getStringExtra("roomId");
+                    if(roomId.length() > 0) {
+                        Toast.makeText(getApplicationContext(), "启动中...", Toast.LENGTH_SHORT).show();
+                        Thread thread = new Thread(startConnectRunnable);
+                        thread.start();
+                    }
+                } else {
+                    handler.post(stopConnection);
+                    hasStart = false;
+                }
+            } else if(action == STOP_CONNECTION) {
+
+            } else if(action == RELOAD_STATUE) {
+                 Intent pongIntent = new Intent("com.windworkshop.bphime.service");
+                 pongIntent.putExtra("hasStart", hasStart);
+                 sendBroadcast(pongIntent);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -61,12 +82,15 @@ public class NotificationService extends Service {
                 //.setContentIntent(pendingIntent)
                 .setAutoCancel(true);
         Log.i(MainActivity.logTag, "service onCreate");
+
+        registerReceiver(clientPing, new IntentFilter("com.windworkshop.bphime.client"));
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         Log.i(MainActivity.logTag, "service onDestroy");
+        unregisterReceiver(clientPing);
     }
 
     @Override
@@ -79,59 +103,6 @@ public class NotificationService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(MainActivity.logTag, "service onStartCommand");
         return super.onStartCommand(intent, flags, startId);
-    }
-
-    class ServiceMessageHandler extends Handler {
-        Context context;
-        ServiceMessageHandler(Context context) {
-            this.context = context;
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            Log.i(MainActivity.logTag, "service handle:"+ msg.what);
-            if(msg.what == 666) {
-                Message testMessage = Message.obtain(msg);
-                testMessage.what = 999;
-
-                clientMessenger = msg.replyTo;
-                if(clientMessenger != null) {
-                    try {
-                        clientMessenger.send(testMessage);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else if(msg.what == START_CONNECTION) {
-
-                if(hasStart == false){
-                    roomId = (String)msg.obj;
-                    if(roomId.length() > 0) {
-                        Toast.makeText(getApplicationContext(), "启动中...", Toast.LENGTH_SHORT).show();
-                        Thread thread = new Thread(startConnectRunnable);
-                        thread.start();
-                    }
-                } else {
-                    handler.post(stopConnection);
-                    hasStart = false;
-                }
-            } else if(msg.what == STOP_CONNECTION) {
-
-            } else if(msg.what == RELOAD_STATUE) {
-                Bundle statue = new Bundle();
-                statue.putBoolean("hasStart", hasStart);
-                Log.i(MainActivity.logTag, "hasStart:"+hasStart);
-                Message statueMessage = handler.obtainMessage(RELOAD_STATUE);
-                statueMessage.setData(statue);
-                try {
-                    clientMessenger.send(statueMessage);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-            
-        }
     }
 
     JWebSocketClient client = null;
@@ -164,12 +135,10 @@ public class NotificationService extends Service {
                         Toast.makeText(getApplicationContext(), "启动错误："+resultJson.getString("message"), Toast.LENGTH_SHORT).show();
                     }
                 }
-                clientMessenger.send(handler.obtainMessage(START_CONNECTION_FINISH));
+                sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", START_CONNECTION_FINISH));
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (JSONException e) {
-                e.printStackTrace();
-            } catch (RemoteException e) {
                 e.printStackTrace();
             }
 
@@ -192,7 +161,7 @@ public class NotificationService extends Service {
                 LivePacket packet = LivePacket.createAuthPacket(authString);
                 ByteBuffer bf = packet.toBuffer();
                 this.send(bf);
-                clientMessenger.send(handler.obtainMessage(START_CONNECTION_SUCCESS));
+                sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", START_CONNECTION_SUCCESS));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -205,8 +174,6 @@ public class NotificationService extends Service {
             Log.e(MainActivity.logTag, "onMessage(ByteBuffer)");
             LivePacket packet = new LivePacket(bytes);
             DanmuItem danmu = new DanmuItem(packet.packetData);
-            Message danmuMessage = handler.obtainMessage(RECIVE_DANMU);
-            danmuMessage.obj = danmu;
             if(danmu.cmd != null) {
                 if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
                     if(danmu.cmd.equals("DANMU_MSG")) {
@@ -217,26 +184,11 @@ public class NotificationService extends Service {
                     notificationManager.notify(NEW_DANMU, builder.build());
                 }
             }
-            Log.e(MainActivity.logTag, "hasStart:"+hasStart);
+           // Log.e(MainActivity.logTag, "hasStart:"+hasStart);
 
-
-
-            try {
-                clientMessenger.send(danmuMessage);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-
-            /*
-            DanmuItem danmu = new DanmuItem(packet.packetData);
-            if(danmu.cmd != null) {
-                if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
-                    adapter.addDanmu(danmu);
-                    handler.post(updateDanmuListRunnable);
-                }
-            }
-
-            */
+            Intent pongIntent = new Intent("com.windworkshop.bphime.service").putExtra("action", RECIVE_DANMU);
+            pongIntent.putExtra("danmu_byte", bytes.array());
+            sendBroadcast(pongIntent);
         }
 
         @Override
@@ -293,12 +245,7 @@ public class NotificationService extends Service {
                 client.close();
             }
             handler.removeCallbacks(heartBeatRunnable);
-            try {
-                clientMessenger.send(handler.obtainMessage(STOP_CONNECTION));
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-
+            sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", STOP_CONNECTION));
             hasStart = false;
             Toast.makeText(getApplicationContext(), "已停止", Toast.LENGTH_SHORT).show();
         }

@@ -1,9 +1,12 @@
 package com.windworkshop.bphime;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Handler;
@@ -20,7 +23,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -60,7 +66,41 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    BroadcastReceiver serverPing = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int action = intent.getIntExtra("action", 0);
+            if(action == NotificationService.START_CONNECTION_FINISH) {
 
+            } else if(action == NotificationService.START_CONNECTION_SUCCESS) {
+                startButton.setEnabled(true);
+                Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
+                startButton.setText("STOP");
+            } else if(action == NotificationService.RECIVE_DANMU) {
+                byte[] rawData = intent.getByteArrayExtra("danmu_byte");
+                LivePacket packet = new LivePacket(ByteBuffer.wrap(rawData));
+                DanmuItem danmu = new DanmuItem(packet.packetData);
+                if(danmu.cmd != null) {
+                    if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                        adapter.addDanmu(danmu);
+                        handler.post(updateDanmuListRunnable);
+                    }
+                }
+            } else if(action == NotificationService.STOP_CONNECTION) {
+                startButton.setText("START");
+                startButton.setEnabled(true);
+            } else if(action == NotificationService.RELOAD_STATUE) {
+                boolean hasStart = intent.getBooleanExtra("hasStart", false);
+                if(hasStart == true) {
+                    startButton.setText("STOP");
+                    startButton.setEnabled(true);
+                } else {
+                    startButton.setText("START");
+                    startButton.setEnabled(true);
+                }
+            }
+        }
+    };
 
     DanmuListAdapter adapter;
     RecyclerView listView;
@@ -69,10 +109,6 @@ public class MainActivity extends AppCompatActivity {
     Button startButton;
 
     SharedPreferences sp;
-
-    ServiceConnection mServiceConnection;
-    Messenger serviceMessenger;
-    Messenger clientMessenger = new Messenger(handler);
 
 
     static String logTag = "BP-Hime";
@@ -93,58 +129,29 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String roomId = roomIdEdittext.getText().toString();
-                Message startMessage = handler.obtainMessage(NotificationService.START_CONNECTION);
-                startMessage.obj = roomId;
-                try {
-                    serviceMessenger.send(startMessage);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                Intent pongIntent = new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.START_CONNECTION).putExtra("roomId", roomId);
+                sendBroadcast(pongIntent);
                 startButton.setEnabled(false);
                 sp.edit().putString("roomid", roomId).commit();
             }
         });
-        mServiceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                serviceMessenger = new Messenger(service);
-                Message fristConnectMessage = handler.obtainMessage(666);
-                fristConnectMessage.replyTo = clientMessenger;
-                try {
-                    serviceMessenger.send(fristConnectMessage);
-                    serviceMessenger.send(handler.obtainMessage(NotificationService.RELOAD_STATUE));
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                Log.i(logTag, "onServiceConnected");
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-                serviceMessenger = null;
-                Log.i(logTag, "onServiceDisconnected");
-            }
-        };
-
+        registerReceiver(serverPing, new IntentFilter("com.windworkshop.bphime.service"));
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         Log.i(logTag, "onStart");
-        bindService(new Intent(this, NotificationService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+        if(!isServiceRun(getApplicationContext(), "com.windworkshop.bphime.NotificationService")) {
+            startService(new Intent(this, NotificationService.class));
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         Log.i(logTag, "onStop");
-        unbindService(mServiceConnection);
     }
-
-
-
-
 
     /**
      * 封包类型
@@ -169,4 +176,19 @@ public class MainActivity extends AppCompatActivity {
             listView.scrollToPosition(adapter.getItemCount()-1);
         }
     };
+    public static boolean isServiceRun(Context mContext, String className) {
+        boolean isRun = false;
+        ActivityManager activityManager = (ActivityManager) mContext
+                .getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> serviceList = activityManager
+                .getRunningServices(40);
+        int size = serviceList.size();
+        for (int i = 0; i < size; i++) {
+            if (serviceList.get(i).service.getClassName().equals(className) == true) {
+                isRun = true;
+                break;
+            }
+        }
+        return isRun;
+    }
 }

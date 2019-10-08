@@ -35,7 +35,7 @@ public class DanmuItem {
             }
 
         } catch (JSONException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }
 }
