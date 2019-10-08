@@ -1,8 +1,15 @@
 package com.windworkshop.bphime;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -30,7 +37,14 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
-    Handler handler = new Handler();
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            Log.i(logTag, "client handle:"+ msg.what);
+        }
+    };
+
     JWebSocketClient client = null;
     DanmuListAdapter adapter;
     RecyclerView listView;
@@ -39,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
     Button startButton;
     String roomId;
     SharedPreferences sp;
+
+    ServiceConnection mServiceConnection;
+    Messenger serviceMessenger;
+    Messenger clientMessenger = new Messenger(handler);
 
     boolean hasStart = false;
     static String logTag = "BP-Hime";
@@ -73,6 +91,37 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        mServiceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                serviceMessenger = new Messenger(service);
+                Message fristConnectMessage = handler.obtainMessage(666);
+                fristConnectMessage.replyTo = clientMessenger;
+                try {
+                    serviceMessenger.send(fristConnectMessage);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                serviceMessenger = null;
+            }
+        };
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        bindService(new Intent(this, NotificationService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unbindService(mServiceConnection);
     }
 
     /**
