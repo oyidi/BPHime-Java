@@ -1,14 +1,22 @@
 package com.windworkshop.bphime;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -28,11 +36,15 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class NotificationService extends Service {
-    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, STOP_CONNECTION = 30, RELOAD_STATUE = 40;
+    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50;
     int NEW_DANMU = 10;
-    NotificationManagerCompat notificationManager;
+    NotificationManager notificationManager;
     NotificationCompat.Builder builder;
     Handler handler = new Handler();
+
+    SharedPreferences sp;
+    boolean vibrateNotification = false;
+    Vibrator vibrator;
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -42,7 +54,7 @@ public class NotificationService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             int action = intent.getIntExtra("action", 0);
-
+            Log.i(MainActivity.logTag, "service handle:" + action);
             if(action == START_CONNECTION) {
                 if(hasStart == false){
                     roomId = intent.getStringExtra("roomId");
@@ -59,8 +71,12 @@ public class NotificationService extends Service {
 
             } else if(action == RELOAD_STATUE) {
                  Intent pongIntent = new Intent("com.windworkshop.bphime.service");
+                pongIntent.putExtra("action", RELOAD_STATUE);
                  pongIntent.putExtra("hasStart", hasStart);
                  sendBroadcast(pongIntent);
+                Log.i(MainActivity.logTag, "service RELOAD_STATUE:" + hasStart);
+            } else if(action == REFRESH_CONFIG) {
+                loadProfile();
             }
         }
     };
@@ -68,19 +84,52 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        notificationManager = NotificationManagerCompat.from(this);
-        //Intent intent = new Intent(this, MainActivity.class);
-        //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        //PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+        sp = getSharedPreferences("config",Context.MODE_PRIVATE);
+        loadProfile();
+        //startForeground(1, new Notification());
+        vibrator = (Vibrator) getSystemService(Service.VIBRATOR_SERVICE);
 
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
         builder = new NotificationCompat.Builder(this, "danmu")
                 .setSmallIcon(R.drawable.ic_launcher_background)
-                .setContentTitle("有新弹幕")
-                .setContentText("")
+                .setContentTitle("BP姬运行中")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 // Set the intent that will fire when the user taps the notification
-                //.setContentIntent(pendingIntent)
+                .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
+        notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel notificationChannel = new NotificationChannel("danmu", "new_danmu", NotificationManager.IMPORTANCE_LOW);
+            // 设置渠道描述
+            //notificationChannel.setDescription("测试通知组");
+            // 是否绕过请勿打扰模式
+            //notificationChannel.canBypassDnd();
+            // 设置绕过请勿打扰模式
+            //notificationChannel.setBypassDnd(true);
+            // 桌面Launcher的消息角标
+            notificationChannel.canShowBadge();
+            // 设置显示桌面Launcher的消息角标
+            notificationChannel.setShowBadge(true);
+            // 设置通知出现时声音，默认通知是有声音的
+            notificationChannel.setSound(null, null);
+            // 设置通知出现时的闪灯（如果 android 设备支持的话）
+            notificationChannel.enableLights(true);
+            notificationChannel.setLightColor(R.color.colorPrimary);
+            // 设置通知出现时的震动（如果 android 设备支持的话）
+            //notificationChannel.enableVibration(true);
+            //notificationChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400,
+            //        300, 200, 400});
+
+            notificationManager.createNotificationChannel(notificationChannel);
+
+            startForeground(1, builder.build());
+        }
+
         Log.i(MainActivity.logTag, "service onCreate");
 
         registerReceiver(clientPing, new IntentFilter("com.windworkshop.bphime.client"));
@@ -103,6 +152,10 @@ public class NotificationService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(MainActivity.logTag, "service onStartCommand");
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    private void loadProfile() {
+        vibrateNotification = sp.getBoolean("vibrate", false);
     }
 
     JWebSocketClient client = null;
@@ -182,6 +235,9 @@ public class NotificationService extends Service {
                         builder.setContentText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
                     }
                     notificationManager.notify(NEW_DANMU, builder.build());
+                    if(vibrateNotification == true) {
+                        vibrator.vibrate(500);
+                    }
                 }
             }
            // Log.e(MainActivity.logTag, "hasStart:"+hasStart);
@@ -230,7 +286,12 @@ public class NotificationService extends Service {
                 //
                 handler.postDelayed(heartBeatRunnable, 30000);
             } else {
-                handler.post(stopConnection);
+                if(hasStart == true) {
+                    Log.i(MainActivity.logTag, "HeartBeat try reconnect");
+                    client.reconnect();
+                } else {
+                    handler.post(stopConnection);
+                }
             }
 
         }
@@ -241,13 +302,17 @@ public class NotificationService extends Service {
     Runnable stopConnection = new Runnable() {
         @Override
         public void run() {
-            if(!client.isClosing() || !client.isClosed()){
-                client.close();
+            if(hasStart == true) {
+                Toast.makeText(getApplicationContext(), "检测到已断开连接等待重连", Toast.LENGTH_SHORT).show();
+            } else{
+                if(!client.isClosing() || !client.isClosed()){
+                    client.close();
+                }
+                handler.removeCallbacks(heartBeatRunnable);
+                sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", STOP_CONNECTION));
+                hasStart = false;
+                Toast.makeText(getApplicationContext(), "已停止", Toast.LENGTH_SHORT).show();
             }
-            handler.removeCallbacks(heartBeatRunnable);
-            sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", STOP_CONNECTION));
-            hasStart = false;
-            Toast.makeText(getApplicationContext(), "已停止", Toast.LENGTH_SHORT).show();
         }
     };
 }

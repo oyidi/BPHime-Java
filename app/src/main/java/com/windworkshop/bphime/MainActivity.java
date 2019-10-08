@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -20,7 +21,10 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -70,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             int action = intent.getIntExtra("action", 0);
+            Log.i(logTag, "client handle:" + action);
             if(action == NotificationService.START_CONNECTION_FINISH) {
 
             } else if(action == NotificationService.START_CONNECTION_SUCCESS) {
@@ -91,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
                 startButton.setEnabled(true);
             } else if(action == NotificationService.RELOAD_STATUE) {
                 boolean hasStart = intent.getBooleanExtra("hasStart", false);
+                Log.i(MainActivity.logTag, "client RELOAD_STATUE:" + hasStart);
                 if(hasStart == true) {
                     startButton.setText("STOP");
                     startButton.setEnabled(true);
@@ -107,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<DanmuItem> mainDanmue = new ArrayList<DanmuItem>();
     EditText roomIdEdittext;
     Button startButton;
+    CheckBox vibrateCheck;
 
     SharedPreferences sp;
 
@@ -116,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        sp = getSharedPreferences("config",Context.MODE_WORLD_WRITEABLE);
+        sp = getSharedPreferences("config",Context.MODE_PRIVATE);
         adapter = new DanmuListAdapter(getApplicationContext(), mainDanmue);
         listView = findViewById(R.id.danmu_list);
         listView.setAdapter(adapter);
@@ -124,6 +131,16 @@ public class MainActivity extends AppCompatActivity {
 
         roomIdEdittext = findViewById(R.id.room_id_edittext);
         roomIdEdittext.setText(sp.getString("roomid", ""));
+        roomIdEdittext.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean hasFocus) {
+                if(!hasFocus){
+                    InputMethodManager manager = ((InputMethodManager)getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE));
+                    if (manager != null)
+                        manager.hideSoftInputFromWindow(view.getWindowToken(),InputMethodManager.HIDE_NOT_ALWAYS);
+                }
+            }
+        });
         startButton = findViewById(R.id.start_revice_danmu_button);
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -135,7 +152,16 @@ public class MainActivity extends AppCompatActivity {
                 sp.edit().putString("roomid", roomId).commit();
             }
         });
-        registerReceiver(serverPing, new IntentFilter("com.windworkshop.bphime.service"));
+        vibrateCheck = findViewById(R.id.vibrate_check);
+        vibrateCheck.setChecked(sp.getBoolean("vibrate", false));
+        vibrateCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                sp.edit().putBoolean("vibrate", isChecked).commit();
+                sendBroadcast(new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.REFRESH_CONFIG));
+            }
+        });
+
     }
 
     @Override
@@ -143,14 +169,22 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         Log.i(logTag, "onStart");
         if(!isServiceRun(getApplicationContext(), "com.windworkshop.bphime.NotificationService")) {
-            startService(new Intent(this, NotificationService.class));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getApplicationContext().startForegroundService(new Intent(this, NotificationService.class));
+            } else {
+                getApplicationContext().startService(new Intent(this, NotificationService.class));
+            }
+            //startService(new Intent(this, NotificationService.class));
         }
+        registerReceiver(serverPing, new IntentFilter("com.windworkshop.bphime.service"));
+        sendBroadcast(new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.RELOAD_STATUE));
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         Log.i(logTag, "onStop");
+        unregisterReceiver(serverPing);
     }
 
     /**

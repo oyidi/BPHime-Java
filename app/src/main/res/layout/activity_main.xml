@@ -10,22 +10,40 @@
         android:id="@+id/room_setting_block"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginRight="5dp"
+        android:layout_marginLeft="5dp"
         android:layout_alignParentTop="true">
 
+        <TextView
+            android:id="@+id/room_id_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:text="房间号" />
         <EditText
             android:id="@+id/room_id_edittext"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toLeftOf="@id/start_revice_danmu_button"
-            android:layout_alignParentLeft="true"
+            android:layout_toRightOf="@+id/room_id_text"
+            android:clickable="true"
+            android:focusableInTouchMode="true"
             android:inputType="number"/>
         <Button
             android:id="@+id/start_revice_danmu_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
+            android:layout_toLeftOf="@+id/vibrate_check"
             android:text="start"
             />
+        <CheckBox
+            android:id="@+id/vibrate_check"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:text="震动" />
     </RelativeLayout>
     <android.support.v7.widget.RecyclerView
         android:id="@+id/danmu_list"
