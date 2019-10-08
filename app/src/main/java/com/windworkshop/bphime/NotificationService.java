@@ -1,13 +1,17 @@
 package com.windworkshop.bphime;
 
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -27,7 +31,10 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class NotificationService extends Service {
-    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, STOP_CONNECTION = 30;
+    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, STOP_CONNECTION = 30, RELOAD_STATUE = 40;
+    int NEW_DANMU = 10;
+    NotificationManagerCompat notificationManager;
+    NotificationCompat.Builder builder;
     Messenger clientMessenger;
     Messenger mMessenger;
     ServiceMessageHandler handler = new ServiceMessageHandler(this);
@@ -40,12 +47,37 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        notificationManager = NotificationManagerCompat.from(this);
+        //Intent intent = new Intent(this, MainActivity.class);
+        //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        //PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
+        builder = new NotificationCompat.Builder(this, "danmu")
+                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setContentTitle("有新弹幕")
+                .setContentText("")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                // Set the intent that will fire when the user taps the notification
+                //.setContentIntent(pendingIntent)
+                .setAutoCancel(true);
+        Log.i(MainActivity.logTag, "service onCreate");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.i(MainActivity.logTag, "service onDestroy");
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Log.i(MainActivity.logTag, "service onUnbind");
+        return super.onUnbind(intent);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
+        Log.i(MainActivity.logTag, "service onStartCommand");
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -86,6 +118,17 @@ public class NotificationService extends Service {
                 }
             } else if(msg.what == STOP_CONNECTION) {
 
+            } else if(msg.what == RELOAD_STATUE) {
+                Bundle statue = new Bundle();
+                statue.putBoolean("hasStart", hasStart);
+                Log.i(MainActivity.logTag, "hasStart:"+hasStart);
+                Message statueMessage = handler.obtainMessage(RELOAD_STATUE);
+                statueMessage.setData(statue);
+                try {
+                    clientMessenger.send(statueMessage);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
             }
             
         }
@@ -161,9 +204,21 @@ public class NotificationService extends Service {
             super.onMessage(bytes);
             Log.e(MainActivity.logTag, "onMessage(ByteBuffer)");
             LivePacket packet = new LivePacket(bytes);
-
+            DanmuItem danmu = new DanmuItem(packet.packetData);
             Message danmuMessage = handler.obtainMessage(RECIVE_DANMU);
-            danmuMessage.obj = packet;
+            danmuMessage.obj = danmu;
+            if(danmu.cmd != null) {
+                if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                    if(danmu.cmd.equals("DANMU_MSG")) {
+                        builder.setContentText(danmu.userName+" : "+danmu.danmuText);
+                    } else if(danmu.cmd.equals("SEND_GIFT")) {
+                        builder.setContentText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
+                    }
+                    notificationManager.notify(NEW_DANMU, builder.build());
+                }
+            }
+            Log.e(MainActivity.logTag, "hasStart:"+hasStart);
+
 
 
             try {

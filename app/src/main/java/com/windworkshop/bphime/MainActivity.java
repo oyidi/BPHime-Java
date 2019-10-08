@@ -32,13 +32,13 @@ public class MainActivity extends AppCompatActivity {
             super.handleMessage(msg);
             Log.i(logTag, "client handle:"+ msg.what);
             if(msg.what == NotificationService.START_CONNECTION_FINISH) {
-                startButton.setEnabled(true);
+
             } else if(msg.what == NotificationService.START_CONNECTION_SUCCESS) {
+                startButton.setEnabled(true);
                 Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
                 startButton.setText("STOP");
             } else if(msg.what == NotificationService.RECIVE_DANMU) {
-                LivePacket packet = (LivePacket) msg.obj;
-                DanmuItem danmu = new DanmuItem(packet.packetData);
+                DanmuItem danmu = (DanmuItem) msg.obj;
                 if(danmu.cmd != null) {
                     if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
                         adapter.addDanmu(danmu);
@@ -48,6 +48,15 @@ public class MainActivity extends AppCompatActivity {
             } else if(msg.what == NotificationService.STOP_CONNECTION) {
                 startButton.setText("START");
                 startButton.setEnabled(true);
+            } else if(msg.what == NotificationService.RELOAD_STATUE) {
+                boolean hasStart = msg.getData().getBoolean("hasStart");
+                if(hasStart == true) {
+                    startButton.setText("STOP");
+                    startButton.setEnabled(true);
+                } else {
+                    startButton.setText("START");
+                    startButton.setEnabled(true);
+                }
             }
         }
     };
@@ -103,14 +112,17 @@ public class MainActivity extends AppCompatActivity {
                 fristConnectMessage.replyTo = clientMessenger;
                 try {
                     serviceMessenger.send(fristConnectMessage);
+                    serviceMessenger.send(handler.obtainMessage(NotificationService.RELOAD_STATUE));
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
+                Log.i(logTag, "onServiceConnected");
             }
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
                 serviceMessenger = null;
+                Log.i(logTag, "onServiceDisconnected");
             }
         };
 
@@ -119,12 +131,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        Log.i(logTag, "onStart");
         bindService(new Intent(this, NotificationService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        Log.i(logTag, "onStop");
         unbindService(mServiceConnection);
     }
 
