@@ -2,29 +2,20 @@ package com.windworkshop.bphime;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Handler;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.style.ForegroundColorSpan;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.handshake.ServerHandshake;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -84,10 +75,14 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 在Thread中的启动线程
+     */
     Runnable startConnectRunnable = new Runnable() {
         @Override
         public void run() {
             try {
+                // 通过请求指定地址取得房间号，浏览器url中的的房间号不一定是真实websocket请求的房间号，可以请求看看排头的几位大佬的房间号就知道了
                 OkHttpClient httpClient = new OkHttpClient.Builder().writeTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).connectTimeout(10, TimeUnit.SECONDS).build();
                 Request request = new Request.Builder().url("https://api.live.bilibili.com/room/v1/Room/room_init?id="+roomId).build();
                 Response response = httpClient.newCall(request).execute();
@@ -118,99 +113,8 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     };
-    class DanmuItem {
-        String danmuData;
-        String cmd;
-        String danmuText;
-        String userName;
-        String giftName;
-        String giftUserName;
-        int giftNum;
-        String welcomeName;
-        public DanmuItem(String rawdata) {
-            danmuData = rawdata;
-            try {
-                JSONObject json = new JSONObject(danmuData);
-                cmd = json.getString("cmd");
-                if(cmd.equals("DANMU_MSG")){
-                    JSONArray info = json.getJSONArray("info");
-                    danmuText = info.getString(1);
-                    userName = info.getJSONArray(2).getString(1);
-                } else if(cmd.equals("SEND_GIFT")) {
-                    JSONObject data = json.getJSONObject("data");
-                    giftName = data.getString("giftName");
-                    giftNum = data.getInt("num");
-                    giftUserName = data.getString("uname");
-                } else if(cmd.equals("WELCOME")) {
-                    JSONObject data = json.getJSONObject("data");
-                    welcomeName = data.getString("uname");
-                }
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
 
-    class DanmuListAdapter extends RecyclerView.Adapter<DanmuViewHolder> {
-        ArrayList<DanmuItem> danmus;
-        Context context;
-        public DanmuListAdapter(Context context, ArrayList<DanmuItem> danmus) {
-            this.danmus = danmus;
-            this.context = context;
-        }
-        @NonNull
-        @Override
-        public DanmuViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
-            View v = LayoutInflater.from(context).inflate(R.layout.danmu_item, viewGroup, false);
-
-            return new DanmuViewHolder(v);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull DanmuViewHolder danmuViewHolder, int i) {
-            danmuViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                }
-            });
-            danmuViewHolder.itemView.setTag(i);
-            DanmuItem danmu = danmus.get(i);
-
-            if(danmu.cmd.equals("DANMU_MSG")){
-                SpannableString snString = new SpannableString(danmu.userName+" : "+danmu.danmuText);
-                snString.setSpan(new ForegroundColorSpan(Color.parseColor("#42b7e8")),0, danmu.userName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                danmuViewHolder.danmuTextView.setText(snString);
-            } else if(danmu.cmd.equals("SEND_GIFT")){
-                SpannableString snString = new SpannableString(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
-                snString.setSpan(new ForegroundColorSpan(Color.parseColor("#42b7e8")),0, danmu.giftUserName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                danmuViewHolder.danmuTextView.setText(snString);
-            } else if(danmu.cmd.equals("WELCOME")){
-                //danmuViewHolder.danmuTextView.setText(danmu.);
-            }
-
-        }
-        public void addDanmu(DanmuItem danmu) {
-            danmus.add(danmu);
-        }
-        public void clear() {
-            danmus.clear();
-        }
-        @Override
-        public int getItemCount() {
-            return danmus.size();
-        }
-    }
-
-
-    class DanmuViewHolder extends RecyclerView.ViewHolder {
-        TextView danmuTextView;
-        public DanmuViewHolder(View itemView) {
-            super(itemView);
-            danmuTextView = itemView.findViewById(R.id.danmu_item_danmutext);
-        }
-    }
 
     public class JWebSocketClient extends WebSocketClient {
         public JWebSocketClient(URI serverUri) {
@@ -218,15 +122,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onOpen(ServerHandshake handshakedata) {
-            Log.e(logTag, "onOpen() " + handshakedata.getHttpStatusMessage());
+        public void onOpen(ServerHandshake handshakeData) {
+            Log.e(logTag, "onOpen() " + handshakeData.getHttpStatusMessage());
+            // 启动的时候发送认证封包
             try {
                 String authString = "{\"uid\": 0,\"roomid\": " + roomId +",\"protover\": 1,\"platform\": \"web\",\"clientver\": \"1.8.5\"}";
                 LivePacket packet = LivePacket.createAuthPacket(authString);
                 ByteBuffer bf = packet.toBuffer();
                 this.send(bf);
-                //byte[] data = bf.array().;
-                //Log.i(logTag, "bf:"+new String(data));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -263,18 +166,23 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClose(int code, String reason, boolean remote) {
             Log.e(logTag, "onClose() " + code + " " + reason);
-
+            handler.post(stopConnection);
         }
 
         @Override
         public void onError(Exception ex) {
             Log.e(logTag, "onError()");
             ex.printStackTrace();
+            handler.post(stopConnection);
         }
     }
+
+    /**
+     * 封包处理类
+     */
     public static class LivePacket {
-        int packetLenght = 0;
-        int headerLength = 16; //  默认16长度头
+        int packetLength = 0;
+        int headerLength = 16; //  默认封包头为16长度
         int protocolVersion = 1;
         int packetType = 0;
         int sequence = 1;
@@ -283,32 +191,33 @@ public class MainActivity extends AppCompatActivity {
         private LivePacket() {
 
         }
-        public LivePacket(ByteBuffer buffer) {
-            //this = new LivePacket();
-            packetLenght = buffer.getInt(0);
-            int nums = buffer.getInt(4);
-            headerLength = nums >> 16;
-            protocolVersion = (nums << 16) >> 16; // 反复横跳
-            packetType = buffer.getInt(8);
-            sequence = buffer.getInt(12);
 
-            //Log.e(logTag, "packetLenght " +packetLenght);
-            //Log.e(logTag, "headerLength " +headerLength);
-            //Log.e(logTag, "protocolVersion " +protocolVersion);
-            //Log.e(logTag, "packetType " +packetType);
-            //Log.e(logTag, "sequence " +sequence);
+        /**
+         * 从Buffer中初始化封包
+         * @param buffer ByteBuffer数据
+         */
+        public LivePacket(ByteBuffer buffer) {
+            // 初始化封包
+            packetLength = buffer.getInt(0); // 第一个0-3位数据为总封包长数据
+            int nums = buffer.getInt(4); // 第二个4-7位数据为需要分类的两个数据
+            headerLength = nums >> 16; // 高两位（前16bit）为头部长度
+            protocolVersion = (nums << 16) >> 16; // 反复横跳获得低两位（后16bit）控制版本号
+            packetType = buffer.getInt(8); // 第三个8-11为封包类型
+            sequence = buffer.getInt(12); // 第四个12-16为sequence
 
             packetData = "";
-            if(packetLenght > headerLength) {
-                String dataString = new String(buffer.array());
+            if(packetLength > headerLength) {
+                String dataString = new String(buffer.array()); // 把所有buffer转换为String
                 if(dataString.indexOf("{") != -1 && dataString.indexOf("}")!= -1) {
+                    // 挑出json格式的数据
                     dataString = dataString.substring(dataString.indexOf("{"), dataString.lastIndexOf("}")+1);
+                    // 保存数据
                     packetData = dataString;
                 }
                 Log.i(logTag, "packetData : " + packetData);
             }
         }
-
+        // 创建封包基础方法
         public static LivePacket createPacket(PacketType type) {
             LivePacket packet = new LivePacket();
             packet.packetType = type.id;
@@ -316,24 +225,24 @@ public class MainActivity extends AppCompatActivity {
         }
         // 创建认证包
         public static LivePacket createAuthPacket(String dataJson) {
-            LivePacket packet = createPacket(PacketType.JOIN_ROOM);
+            LivePacket packet = createPacket(PacketType.JOIN_ROOM); // 设置封包类型
             packet.packetData = dataJson;
             return packet;
         }
 
         /**
-         * 转换为封包
+         * 发送钱需要将封包转换为Buffer数据
          * @return
          */
         public ByteBuffer toBuffer() {
             // 总包长
-            packetLenght = headerLength + packetData.length();
+            packetLength = headerLength + packetData.length();
             // 创建封包缓冲
-            ByteBuffer bf =  ByteBuffer.allocate(packetLenght);
+            ByteBuffer bf =  ByteBuffer.allocate(packetLength);
             //ByteBuffer的一个Int（Byte）为四位8bit数据。
 
-            // 第一个Int装入总包长数据
-            bf.putInt(0,packetLenght);
+            // 第一个Int装入总封包长数据
+            bf.putInt(0, packetLength);
             // 第二个Int因为要拆成两个2x8bit来分别储存头部长度和控制版本号，因为放char和byte转换非常麻烦，直接偏移16位处理还快些
             int nums = 0;
             nums = (nums << 16) | headerLength; // 头部长度
@@ -352,6 +261,10 @@ public class MainActivity extends AppCompatActivity {
             return bf;
         }
     }
+
+    /**
+     * 封包类型
+     */
     enum PacketType {
         CLIENT_HEARTBEAT(2), COMMAND(5), JOIN_ROOM(7), SERVER_HEARTBEAT(8);
         int id;
@@ -360,6 +273,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+    /**
+     * 心跳包维护
+     */
     Runnable heartBeatRunnable = new Runnable() {
         @Override
         public void run() {
@@ -375,6 +292,7 @@ public class MainActivity extends AppCompatActivity {
                 LivePacket packet = LivePacket.createPacket(PacketType.CLIENT_HEARTBEAT);
                 client.send(packet.toBuffer());
                 Log.e(logTag, "heartBell");
+                //
                 handler.postDelayed(heartBeatRunnable, 30000);
             } else {
                 handler.post(stopConnection);
@@ -382,16 +300,24 @@ public class MainActivity extends AppCompatActivity {
 
         }
     };
+    /**
+     * 停止处理
+     */
     Runnable stopConnection = new Runnable() {
         @Override
         public void run() {
-            client.close();
+            if(!client.isClosing() || !client.isClosed()){
+                client.close();
+            }
             handler.removeCallbacks(heartBeatRunnable);
             startButton.setText("START");
             hasStart = false;
             Toast.makeText(getApplicationContext(), "已停止", Toast.LENGTH_SHORT).show();
         }
     };
+    /**
+     * 弹幕接收显示处理
+     */
     Runnable updateDanmuListRunnable = new Runnable() {
         @Override
         public void run() {
