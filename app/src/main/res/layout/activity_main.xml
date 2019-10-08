@@ -17,14 +17,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toLeftOf="@id/start_revice_danmu_button"
-            android:layout_alignParentLeft="true"/>
+            android:layout_alignParentLeft="true"
+            android:inputType="number"/>
         <Button
             android:id="@+id/start_revice_danmu_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
             android:text="start"
-
             />
     </RelativeLayout>
     <android.support.v7.widget.RecyclerView

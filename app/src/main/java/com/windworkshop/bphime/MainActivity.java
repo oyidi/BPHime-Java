@@ -2,12 +2,16 @@ package com.windworkshop.bphime;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -41,15 +45,16 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView listView;
     ArrayList<DanmuItem> mainDanmue = new ArrayList<DanmuItem>();
     EditText roomIdEdittext;
+    Button startButton;
     String roomId;
     SharedPreferences sp;
-    
+
+    boolean hasStart = false;
     static String logTag = "BP-Hime";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-       // mainDanmue.add(new DanmuItem("asdasdasdasdas"));
         sp = getSharedPreferences("config",Context.MODE_WORLD_WRITEABLE);
         adapter = new DanmuListAdapter(getApplicationContext(), mainDanmue);
         listView = findViewById(R.id.danmu_list);
@@ -58,22 +63,25 @@ public class MainActivity extends AppCompatActivity {
 
         roomIdEdittext = findViewById(R.id.room_id_edittext);
         roomIdEdittext.setText(sp.getString("roomid", ""));
-        Button startButton = findViewById(R.id.start_revice_danmu_button);
+        startButton = findViewById(R.id.start_revice_danmu_button);
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                roomId = roomIdEdittext.getText().toString();
-                if(roomId.length() > 0) {
-                    sp.edit().putString("roomid", roomId).commit();
-                    //handler.post(startConnectRunnable);
-                    Thread thread = new Thread(startConnectRunnable);
-                    thread.start();
+                if(hasStart == false){
+                    roomId = roomIdEdittext.getText().toString();
+                    if(roomId.length() > 0) {
+                        sp.edit().putString("roomid", roomId).commit();
+                        startButton.setEnabled(false);
+                        Toast.makeText(getApplicationContext(), "启动中...", Toast.LENGTH_SHORT).show();
+                        Thread thread = new Thread(startConnectRunnable);
+                        thread.start();
+                    }
+                } else {
+                    handler.post(stopConnection);
+                    hasStart = false;
                 }
             }
         });
-
-
-
     }
 
     Runnable startConnectRunnable = new Runnable() {
@@ -81,12 +89,10 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             try {
                 OkHttpClient httpClient = new OkHttpClient.Builder().writeTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).connectTimeout(10, TimeUnit.SECONDS).build();
-
                 Request request = new Request.Builder().url("https://api.live.bilibili.com/room/v1/Room/room_init?id="+roomId).build();
                 Response response = httpClient.newCall(request).execute();
                 if (response.isSuccessful()) {
                     String responResult = response.body().string();
-
                     JSONObject resultJson = new JSONObject(responResult);
                     int code = resultJson.getInt("code");
                     if(code == 0) {
@@ -94,18 +100,22 @@ public class MainActivity extends AppCompatActivity {
                         client = new JWebSocketClient(URI.create("wss://broadcastlv.chat.bilibili.com:2245/sub"));
                         client.connect();
                         handler.postDelayed(heartBeatRunnable, 30000);
+
                     } else {
                         Toast.makeText(getApplicationContext(), "启动错误："+resultJson.getString("message"), Toast.LENGTH_SHORT).show();
                     }
-
-
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    startButton.setEnabled(true);
+                }
+            });
         }
     };
     class DanmuItem {
@@ -169,9 +179,13 @@ public class MainActivity extends AppCompatActivity {
             DanmuItem danmu = danmus.get(i);
 
             if(danmu.cmd.equals("DANMU_MSG")){
-                danmuViewHolder.danmuTextView.setText(danmu.userName+" : "+danmu.danmuText);
+                SpannableString snString = new SpannableString(danmu.userName+" : "+danmu.danmuText);
+                snString.setSpan(new ForegroundColorSpan(Color.parseColor("#42b7e8")),0, danmu.userName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                danmuViewHolder.danmuTextView.setText(snString);
             } else if(danmu.cmd.equals("SEND_GIFT")){
-                danmuViewHolder.danmuTextView.setText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
+                SpannableString snString = new SpannableString(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
+                snString.setSpan(new ForegroundColorSpan(Color.parseColor("#42b7e8")),0, danmu.giftUserName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                danmuViewHolder.danmuTextView.setText(snString);
             } else if(danmu.cmd.equals("WELCOME")){
                 //danmuViewHolder.danmuTextView.setText(danmu.);
             }
@@ -216,7 +230,14 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
+                    startButton.setText("STOP");
+                }
+            });
+            hasStart = true;
         }
 
         @Override
@@ -350,10 +371,25 @@ public class MainActivity extends AppCompatActivity {
             bf.putInt(12,1);
             client.send(bf);
             */
-            LivePacket packet = LivePacket.createPacket(PacketType.CLIENT_HEARTBEAT);
-            client.send(packet.toBuffer());
-            Log.e(logTag, "heartBell");
-            handler.postDelayed(heartBeatRunnable, 30000);
+            if(client.isClosed() == false){
+                LivePacket packet = LivePacket.createPacket(PacketType.CLIENT_HEARTBEAT);
+                client.send(packet.toBuffer());
+                Log.e(logTag, "heartBell");
+                handler.postDelayed(heartBeatRunnable, 30000);
+            } else {
+                handler.post(stopConnection);
+            }
+
+        }
+    };
+    Runnable stopConnection = new Runnable() {
+        @Override
+        public void run() {
+            client.close();
+            handler.removeCallbacks(heartBeatRunnable);
+            startButton.setText("START");
+            hasStart = false;
+            Toast.makeText(getApplicationContext(), "已停止", Toast.LENGTH_SHORT).show();
         }
     };
     Runnable updateDanmuListRunnable = new Runnable() {
