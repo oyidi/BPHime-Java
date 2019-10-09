@@ -82,9 +82,10 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
                 startButton.setText("STOP");
             } else if(action == NotificationService.RECIVE_DANMU) {
-                byte[] rawData = intent.getByteArrayExtra("danmu_byte");
-                LivePacket packet = new LivePacket(ByteBuffer.wrap(rawData));
-                DanmuItem danmu = new DanmuItem(packet.packetData);
+                //byte[] rawData = intent.getByteArrayExtra("danmu_byte");
+                //LivePacket packet = new LivePacket(ByteBuffer.wrap(rawData));
+                String danmuRawData = intent.getStringExtra("danmu_string");
+                DanmuItem danmu = new DanmuItem(danmuRawData);
                 if(danmu.cmd != null) {
                     if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
                         adapter.addDanmu(danmu);
@@ -104,6 +105,17 @@ public class MainActivity extends AppCompatActivity {
                     startButton.setText("START");
                     startButton.setEnabled(true);
                 }
+                ArrayList<String> danmuStrings = intent.getStringArrayListExtra("danmu_strings");
+
+                for(String danmuData : danmuStrings){
+                    DanmuItem danmu = new DanmuItem(danmuData);
+                    if(danmu.cmd != null) {
+                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                            adapter.addDanmu(danmu);
+                        }
+                    }
+                }
+                handler.post(updateDanmuListRunnable);
             }
         }
     };

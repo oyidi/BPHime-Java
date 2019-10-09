@@ -29,6 +29,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -45,6 +46,8 @@ public class NotificationService extends Service {
     SharedPreferences sp;
     boolean vibrateNotification = false;
     Vibrator vibrator;
+
+    ArrayList<String> danmuRawData = new ArrayList<String>();
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -70,11 +73,14 @@ public class NotificationService extends Service {
             } else if(action == STOP_CONNECTION) {
 
             } else if(action == RELOAD_STATUE) {
-                 Intent pongIntent = new Intent("com.windworkshop.bphime.service");
-                pongIntent.putExtra("action", RELOAD_STATUE);
-                 pongIntent.putExtra("hasStart", hasStart);
-                 sendBroadcast(pongIntent);
-                Log.i(MainActivity.logTag, "service RELOAD_STATUE:" + hasStart);
+                  Intent pongIntent = new Intent("com.windworkshop.bphime.service");
+                  pongIntent.putExtra("action", RELOAD_STATUE);
+                  pongIntent.putExtra("hasStart", hasStart);
+
+                  pongIntent.putExtra("danmu_strings", danmuRawData);
+
+                  sendBroadcast(pongIntent);
+                  Log.i(MainActivity.logTag, "service RELOAD_STATUE:" + hasStart);
             } else if(action == REFRESH_CONFIG) {
                 loadProfile();
             }
@@ -241,9 +247,10 @@ public class NotificationService extends Service {
                 }
             }
            // Log.e(MainActivity.logTag, "hasStart:"+hasStart);
-
+            danmuRawData.add(packet.packetData);
             Intent pongIntent = new Intent("com.windworkshop.bphime.service").putExtra("action", RECIVE_DANMU);
-            pongIntent.putExtra("danmu_byte", bytes.array());
+            //pongIntent.putExtra("danmu_byte", bytes.array());
+            pongIntent.putExtra("danmu_string", packet.packetData);
             sendBroadcast(pongIntent);
         }
 
