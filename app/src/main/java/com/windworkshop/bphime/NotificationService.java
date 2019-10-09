@@ -272,6 +272,7 @@ public class NotificationService extends Service {
             handler.post(stopConnection);
         }
     }
+    int reconnectCoount = 0;
     /**
      * 心跳包维护
      */
@@ -295,7 +296,17 @@ public class NotificationService extends Service {
             } else {
                 if(hasStart == true) {
                     Log.i(MainActivity.logTag, "HeartBeat try reconnect");
-                    client.reconnect();
+
+                    reconnectCoount += 1;
+                    if(reconnectCoount > 5) {
+                        hasStart = false;
+                        reconnectCoount = 0;
+                        handler.post(stopConnection);
+                    } else {
+                        client.reconnect();
+                        handler.postDelayed(heartBeatRunnable, 10000);
+                    }
+
                 } else {
                     handler.post(stopConnection);
                 }
