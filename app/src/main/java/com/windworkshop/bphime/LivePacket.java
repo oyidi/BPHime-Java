@@ -58,8 +58,8 @@ public class LivePacket {
     }
 
     /**
-     * 发送钱需要将封包转换为Buffer数据
-     * @return
+     * 发送前需要将封包转换为Buffer数据
+     * @return 返回需要发送的封包
      */
     public ByteBuffer toBuffer() {
         // 总包长
@@ -84,7 +84,6 @@ public class LivePacket {
                 bf.put(16+i,dataBytes[i]);
             }
         }
-
         return bf;
     }
 }

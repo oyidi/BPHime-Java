@@ -3,18 +3,14 @@ package com.windworkshop.bphime;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -28,7 +24,6 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
             } else if(msg.what == NotificationService.START_CONNECTION_SUCCESS) {
                 startButton.setEnabled(true);
                 Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
-                startButton.setText("STOP");
+                startButton.setText(R.string.stop);
             } else if(msg.what == NotificationService.RECIVE_DANMU) {
                 DanmuItem danmu = (DanmuItem) msg.obj;
                 if(danmu.cmd != null) {
@@ -56,15 +51,15 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             } else if(msg.what == NotificationService.STOP_CONNECTION) {
-                startButton.setText("START");
+                startButton.setText(R.string.start);
                 startButton.setEnabled(true);
             } else if(msg.what == NotificationService.RELOAD_STATUE) {
                 boolean hasStart = msg.getData().getBoolean("hasStart");
                 if(hasStart == true) {
-                    startButton.setText("STOP");
+                    startButton.setText(R.string.stop);
                     startButton.setEnabled(true);
                 } else {
-                    startButton.setText("START");
+                    startButton.setText(R.string.start);
                     startButton.setEnabled(true);
                 }
             }
@@ -80,10 +75,8 @@ public class MainActivity extends AppCompatActivity {
             } else if(action == NotificationService.START_CONNECTION_SUCCESS) {
                 startButton.setEnabled(true);
                 Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
-                startButton.setText("STOP");
+                startButton.setText(R.string.stop);
             } else if(action == NotificationService.RECIVE_DANMU) {
-                //byte[] rawData = intent.getByteArrayExtra("danmu_byte");
-                //LivePacket packet = new LivePacket(ByteBuffer.wrap(rawData));
                 String danmuRawData = intent.getStringExtra("danmu_string");
                 DanmuItem danmu = new DanmuItem(danmuRawData);
                 if(danmu.cmd != null) {
@@ -93,16 +86,16 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             } else if(action == NotificationService.STOP_CONNECTION) {
-                startButton.setText("START");
+                startButton.setText(R.string.start);
                 startButton.setEnabled(true);
             } else if(action == NotificationService.RELOAD_STATUE) {
                 boolean hasStart = intent.getBooleanExtra("hasStart", false);
                 Log.i(MainActivity.logTag, "client RELOAD_STATUE:" + hasStart);
                 if(hasStart == true) {
-                    startButton.setText("STOP");
+                    startButton.setText(R.string.stop);
                     startButton.setEnabled(true);
                 } else {
-                    startButton.setText("START");
+                    startButton.setText(R.string.start);
                     startButton.setEnabled(true);
                 }
                 ArrayList<String> danmuStrings = intent.getStringArrayListExtra("danmu_strings");
@@ -135,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         sp = getSharedPreferences("config",Context.MODE_PRIVATE);
         adapter = new DanmuListAdapter(getApplicationContext(), mainDanmue);
         listView = findViewById(R.id.danmu_list);
@@ -173,6 +167,10 @@ public class MainActivity extends AppCompatActivity {
                 sendBroadcast(new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.REFRESH_CONFIG));
             }
         });
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayShowHomeEnabled(true);
+        actionBar.setDisplayUseLogoEnabled(true);
+        actionBar.setIcon(R.drawable.action_bar_icon);
 
     }
 
@@ -186,7 +184,6 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 getApplicationContext().startService(new Intent(this, NotificationService.class));
             }
-            //startService(new Intent(this, NotificationService.class));
         }
         registerReceiver(serverPing, new IntentFilter("com.windworkshop.bphime.service"));
         sendBroadcast(new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.RELOAD_STATUE));

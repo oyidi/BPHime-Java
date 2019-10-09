@@ -1,6 +1,5 @@
 package com.windworkshop.bphime;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -10,11 +9,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
@@ -90,49 +87,31 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
         sp = getSharedPreferences("config",Context.MODE_PRIVATE);
         loadProfile();
-        //startForeground(1, new Notification());
         vibrator = (Vibrator) getSystemService(Service.VIBRATOR_SERVICE);
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.setAction(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
         builder = new NotificationCompat.Builder(this, "danmu")
-                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setSmallIcon(R.drawable.main_small_icon)
                 .setContentTitle("BP姬运行中")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                // Set the intent that will fire when the user taps the notification
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel("danmu", "new_danmu", NotificationManager.IMPORTANCE_LOW);
-            // 设置渠道描述
-            //notificationChannel.setDescription("测试通知组");
-            // 是否绕过请勿打扰模式
-            //notificationChannel.canBypassDnd();
-            // 设置绕过请勿打扰模式
-            //notificationChannel.setBypassDnd(true);
-            // 桌面Launcher的消息角标
             notificationChannel.canShowBadge();
-            // 设置显示桌面Launcher的消息角标
             notificationChannel.setShowBadge(true);
-            // 设置通知出现时声音，默认通知是有声音的
             notificationChannel.setSound(null, null);
-            // 设置通知出现时的闪灯（如果 android 设备支持的话）
             notificationChannel.enableLights(true);
             notificationChannel.setLightColor(R.color.colorPrimary);
-            // 设置通知出现时的震动（如果 android 设备支持的话）
-            //notificationChannel.enableVibration(true);
-            //notificationChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400,
-            //        300, 200, 400});
-
             notificationManager.createNotificationChannel(notificationChannel);
-
             startForeground(1, builder.build());
         }
 
@@ -213,7 +192,7 @@ public class NotificationService extends Service {
 
         @Override
         public void onOpen(ServerHandshake handshakeData) {
-            Log.e(MainActivity.logTag, "onOpen() " + handshakeData.getHttpStatusMessage());
+            Log.i(MainActivity.logTag, "onOpen() " + handshakeData.getHttpStatusMessage());
             // 启动的时候发送认证封包
             try {
                 String authString = "{\"uid\": 0,\"roomid\": " + roomId +",\"protover\": 1,\"platform\": \"web\",\"clientver\": \"1.8.5\"}";
@@ -230,7 +209,7 @@ public class NotificationService extends Service {
         @Override
         public void onMessage(ByteBuffer bytes) {
             super.onMessage(bytes);
-            Log.e(MainActivity.logTag, "onMessage(ByteBuffer)");
+            Log.i(MainActivity.logTag, "onMessage(ByteBuffer)");
             LivePacket packet = new LivePacket(bytes);
             DanmuItem danmu = new DanmuItem(packet.packetData);
             if(danmu.cmd != null) {
@@ -246,10 +225,8 @@ public class NotificationService extends Service {
                     }
                 }
             }
-           // Log.e(MainActivity.logTag, "hasStart:"+hasStart);
             danmuRawData.add(packet.packetData);
             Intent pongIntent = new Intent("com.windworkshop.bphime.service").putExtra("action", RECIVE_DANMU);
-            //pongIntent.putExtra("danmu_byte", bytes.array());
             pongIntent.putExtra("danmu_string", packet.packetData);
             sendBroadcast(pongIntent);
         }
@@ -261,13 +238,13 @@ public class NotificationService extends Service {
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
-            Log.e(MainActivity.logTag, "onClose() " + code + " " + reason);
+            Log.i(MainActivity.logTag, "onClose() " + code + " " + reason);
             handler.post(stopConnection);
         }
 
         @Override
         public void onError(Exception ex) {
-            Log.e(MainActivity.logTag, "onError()");
+            Log.i(MainActivity.logTag, "onError()");
             ex.printStackTrace();
             handler.post(stopConnection);
         }
@@ -287,22 +264,24 @@ public class NotificationService extends Service {
             bf.putInt(12,1);
             client.send(bf);
             */
+            // 连接没有被关闭，发送心跳包
             if(client.isClosed() == false){
                 LivePacket packet = LivePacket.createPacket(MainActivity.PacketType.CLIENT_HEARTBEAT);
                 client.send(packet.toBuffer());
                 Log.e(MainActivity.logTag, "heartBell");
-                //
+                // 心跳包30秒一发
                 handler.postDelayed(heartBeatRunnable, 30000);
-            } else {
-                if(hasStart == true) {
+            } else { // 连接被关闭
+                if(hasStart == true) { // 如果在运行中，则尝试重连
                     Log.i(MainActivity.logTag, "HeartBeat try reconnect");
-
                     reconnectCoount += 1;
-                    if(reconnectCoount > 5) {
+                    if(reconnectCoount > 5) { // 重试5次不成功就完全停止
                         hasStart = false;
                         reconnectCoount = 0;
                         handler.post(stopConnection);
+                        notificationManager.notify(NEW_DANMU, builder.setContentText("多次重连不成功，已停止服务").build());
                     } else {
+                        // 重连时候缩短到10秒钟一次
                         client.reconnect();
                         handler.postDelayed(heartBeatRunnable, 10000);
                     }
