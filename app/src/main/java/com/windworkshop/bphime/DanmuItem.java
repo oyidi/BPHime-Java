@@ -13,6 +13,11 @@ public class DanmuItem {
     String giftUserName;
     int giftNum;
     String welcomeName;
+    public DanmuItem(String cmd, String log, String time) {
+        this.cmd = cmd;
+        this.danmuText = log;
+        this.userName = time;
+    }
     public DanmuItem(String rawdata) {
         danmuData = rawdata;
         // 初始化弹幕并进行分类

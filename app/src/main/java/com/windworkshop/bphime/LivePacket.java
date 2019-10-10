@@ -41,7 +41,7 @@ public class LivePacket {
                 // 保存数据
                 packetData = dataString;
             }
-            Log.i(MainActivity.logTag, "packetData : " + packetData);
+            MainModule.showLog( "packetData : " + packetData);
         }
     }
     // 创建封包基础方法

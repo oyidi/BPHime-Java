@@ -35,6 +35,7 @@ import okhttp3.Response;
 
 public class NotificationService extends Service {
     public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50;
+    public static String FOR_CLIENT = "com.windworkshop.bphime.service", FOR_SERVICE = "com.windworkshop.bphime.client";
     int NEW_DANMU = 10;
     NotificationManager notificationManager;
     NotificationCompat.Builder builder;
@@ -54,7 +55,7 @@ public class NotificationService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             int action = intent.getIntExtra("action", 0);
-            Log.i(MainActivity.logTag, "service handle:" + action);
+            MainModule.showLog( "service handle:" + action);
             if(action == START_CONNECTION) {
                 if(hasStart == false){
                     roomId = intent.getStringExtra("roomId");
@@ -70,14 +71,14 @@ public class NotificationService extends Service {
             } else if(action == STOP_CONNECTION) {
 
             } else if(action == RELOAD_STATUE) {
-                  Intent pongIntent = new Intent("com.windworkshop.bphime.service");
+                  Intent pongIntent = new Intent(FOR_CLIENT);
                   pongIntent.putExtra("action", RELOAD_STATUE);
                   pongIntent.putExtra("hasStart", hasStart);
 
                   pongIntent.putExtra("danmu_strings", danmuRawData);
 
                   sendBroadcast(pongIntent);
-                  Log.i(MainActivity.logTag, "service RELOAD_STATUE:" + hasStart);
+                  MainModule.showLog( "service RELOAD_STATUE:" + hasStart);
             } else if(action == REFRESH_CONFIG) {
                 loadProfile();
             }
@@ -87,7 +88,7 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
+        MainModule.setContext(getApplicationContext());
         sp = getSharedPreferences("config",Context.MODE_PRIVATE);
         loadProfile();
         vibrator = (Vibrator) getSystemService(Service.VIBRATOR_SERVICE);
@@ -97,13 +98,16 @@ public class NotificationService extends Service {
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
         builder = new NotificationCompat.Builder(this, "danmu")
-                .setSmallIcon(R.drawable.main_small_icon)
                 .setContentTitle("BP姬运行中")
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
+        if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
+            builder.setSmallIcon(R.mipmap.main_small_icon);
+        } else {
+            builder.setSmallIcon(R.mipmap.ic_launcher_foreground);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel("danmu", "new_danmu", NotificationManager.IMPORTANCE_LOW);
             notificationChannel.canShowBadge();
@@ -115,27 +119,26 @@ public class NotificationService extends Service {
             startForeground(1, builder.build());
         }
 
-        Log.i(MainActivity.logTag, "service onCreate");
-
-        registerReceiver(clientPing, new IntentFilter("com.windworkshop.bphime.client"));
+        MainModule.showLog( "service onCreate");
+        registerReceiver(clientPing, new IntentFilter(FOR_SERVICE));
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.i(MainActivity.logTag, "service onDestroy");
+        MainModule.showLog( "service onDestroy");
         unregisterReceiver(clientPing);
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
-        Log.i(MainActivity.logTag, "service onUnbind");
+        MainModule.showLog( "service onUnbind");
         return super.onUnbind(intent);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(MainActivity.logTag, "service onStartCommand");
+        MainModule.showLog( "service onStartCommand");
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -173,7 +176,7 @@ public class NotificationService extends Service {
                         Toast.makeText(getApplicationContext(), "启动错误："+resultJson.getString("message"), Toast.LENGTH_SHORT).show();
                     }
                 }
-                sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", START_CONNECTION_FINISH));
+                sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_FINISH));
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (JSONException e) {
@@ -192,14 +195,14 @@ public class NotificationService extends Service {
 
         @Override
         public void onOpen(ServerHandshake handshakeData) {
-            Log.i(MainActivity.logTag, "onOpen() " + handshakeData.getHttpStatusMessage());
+            MainModule.showLog( "onOpen() " + handshakeData.getHttpStatusMessage());
             // 启动的时候发送认证封包
             try {
                 String authString = "{\"uid\": 0,\"roomid\": " + roomId +",\"protover\": 1,\"platform\": \"web\",\"clientver\": \"1.8.5\"}";
                 LivePacket packet = LivePacket.createAuthPacket(authString);
                 ByteBuffer bf = packet.toBuffer();
                 this.send(bf);
-                sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", START_CONNECTION_SUCCESS));
+                sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_SUCCESS));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -209,7 +212,7 @@ public class NotificationService extends Service {
         @Override
         public void onMessage(ByteBuffer bytes) {
             super.onMessage(bytes);
-            Log.i(MainActivity.logTag, "onMessage(ByteBuffer)");
+            MainModule.showLog( "onMessage(ByteBuffer)");
             LivePacket packet = new LivePacket(bytes);
             DanmuItem danmu = new DanmuItem(packet.packetData);
             if(danmu.cmd != null) {
@@ -226,25 +229,25 @@ public class NotificationService extends Service {
                 }
             }
             danmuRawData.add(packet.packetData);
-            Intent pongIntent = new Intent("com.windworkshop.bphime.service").putExtra("action", RECIVE_DANMU);
+            Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", RECIVE_DANMU);
             pongIntent.putExtra("danmu_string", packet.packetData);
             sendBroadcast(pongIntent);
         }
 
         @Override
         public void onMessage(String message) {
-            Log.i(MainActivity.logTag, "onMessage : "+ message);
+            MainModule.showLog( "onMessage : "+ message);
         }
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
-            Log.i(MainActivity.logTag, "onClose() " + code + " " + reason);
+            MainModule.showLog( "onClose() " + code + " " + reason);
             handler.post(stopConnection);
         }
 
         @Override
         public void onError(Exception ex) {
-            Log.i(MainActivity.logTag, "onError()");
+            MainModule.showLog( "onError()");
             ex.printStackTrace();
             handler.post(stopConnection);
         }
@@ -268,12 +271,12 @@ public class NotificationService extends Service {
             if(client.isClosed() == false){
                 LivePacket packet = LivePacket.createPacket(MainActivity.PacketType.CLIENT_HEARTBEAT);
                 client.send(packet.toBuffer());
-                Log.e(MainActivity.logTag, "heartBell");
+                MainModule.showLog( "heartBell");
                 // 心跳包30秒一发
                 handler.postDelayed(heartBeatRunnable, 30000);
             } else { // 连接被关闭
                 if(hasStart == true) { // 如果在运行中，则尝试重连
-                    Log.i(MainActivity.logTag, "HeartBeat try reconnect");
+                    MainModule.showLog( "HeartBeat try reconnect");
                     reconnectCoount += 1;
                     if(reconnectCoount > 5) { // 重试5次不成功就完全停止
                         hasStart = false;
@@ -306,7 +309,7 @@ public class NotificationService extends Service {
                     client.close();
                 }
                 handler.removeCallbacks(heartBeatRunnable);
-                sendBroadcast(new Intent("com.windworkshop.bphime.service").putExtra("action", STOP_CONNECTION));
+                sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", STOP_CONNECTION));
                 hasStart = false;
                 Toast.makeText(getApplicationContext(), "已停止", Toast.LENGTH_SHORT).show();
             }

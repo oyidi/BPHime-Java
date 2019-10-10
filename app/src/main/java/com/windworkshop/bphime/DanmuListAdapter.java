@@ -47,6 +47,11 @@ public class DanmuListAdapter extends RecyclerView.Adapter<DanmuListAdapter.Danm
             snString.setSpan(new ForegroundColorSpan(Color.parseColor("#42b7e8")),0, danmu.giftUserName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             danmuViewHolder.danmuTextView.setText(snString);
         } else if(danmu.cmd.equals("WELCOME")){
+
+        } else if(danmu.cmd.equals("log")){
+            SpannableString snString = new SpannableString("日志：" + danmu.danmuText + " 时间：" +  danmu.userName);
+            snString.setSpan(new ForegroundColorSpan(Color.parseColor("#e60012")),0, 3, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            danmuViewHolder.danmuTextView.setText(snString);
         }
 
     }

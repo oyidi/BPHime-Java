@@ -24,7 +24,9 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -35,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            Log.i(logTag, "client handle:"+ msg.what);
+            //MainModule.showLog( "client handle:"+ msg.what);
             if(msg.what == NotificationService.START_CONNECTION_FINISH) {
 
             } else if(msg.what == NotificationService.START_CONNECTION_SUCCESS) {
@@ -69,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             int action = intent.getIntExtra("action", 0);
-            Log.i(logTag, "client handle:" + action);
+           // MainModule.showLog( "client handle:" + action);
             if(action == NotificationService.START_CONNECTION_FINISH) {
 
             } else if(action == NotificationService.START_CONNECTION_SUCCESS) {
@@ -77,12 +79,21 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
                 startButton.setText(R.string.stop);
             } else if(action == NotificationService.RECIVE_DANMU) {
-                String danmuRawData = intent.getStringExtra("danmu_string");
-                DanmuItem danmu = new DanmuItem(danmuRawData);
-                if(danmu.cmd != null) {
-                    if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
-                        adapter.addDanmu(danmu);
-                        handler.post(updateDanmuListRunnable);
+                boolean isLog = intent.getBooleanExtra("isLog", false);
+                if(isLog == true) {
+
+                    String danmuRawData = intent.getStringExtra("danmu_string");
+                    DanmuItem danmu = new DanmuItem("log", danmuRawData, sdf.format(new Date()));
+                    adapter.addDanmu(danmu);
+                    handler.post(updateDanmuListRunnable);
+                } else {
+                    String danmuRawData = intent.getStringExtra("danmu_string");
+                    DanmuItem danmu = new DanmuItem(danmuRawData);
+                    if(danmu.cmd != null) {
+                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                            adapter.addDanmu(danmu);
+                            handler.post(updateDanmuListRunnable);
+                        }
                     }
                 }
             } else if(action == NotificationService.STOP_CONNECTION) {
@@ -90,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
                 startButton.setEnabled(true);
             } else if(action == NotificationService.RELOAD_STATUE) {
                 boolean hasStart = intent.getBooleanExtra("hasStart", false);
-                Log.i(MainActivity.logTag, "client RELOAD_STATUE:" + hasStart);
+                MainModule.showLog( "client RELOAD_STATUE:" + hasStart);
                 if(hasStart == true) {
                     startButton.setText(R.string.stop);
                     startButton.setEnabled(true);
@@ -121,9 +132,7 @@ public class MainActivity extends AppCompatActivity {
     CheckBox vibrateCheck;
 
     SharedPreferences sp;
-
-
-    static String logTag = "BP-Hime";
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -152,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String roomId = roomIdEdittext.getText().toString();
-                Intent pongIntent = new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.START_CONNECTION).putExtra("roomId", roomId);
+                Intent pongIntent = new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.START_CONNECTION).putExtra("roomId", roomId);
                 sendBroadcast(pongIntent);
                 startButton.setEnabled(false);
                 sp.edit().putString("roomid", roomId).commit();
@@ -164,20 +173,20 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 sp.edit().putBoolean("vibrate", isChecked).commit();
-                sendBroadcast(new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.REFRESH_CONFIG));
+                sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.REFRESH_CONFIG));
             }
         });
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayShowHomeEnabled(true);
         actionBar.setDisplayUseLogoEnabled(true);
-        actionBar.setIcon(R.drawable.action_bar_icon);
+        actionBar.setIcon(R.mipmap.action_bar_icon);
 
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        Log.i(logTag, "onStart");
+        MainModule.showLog( "onStart");
         if(!isServiceRun(getApplicationContext(), "com.windworkshop.bphime.NotificationService")) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 getApplicationContext().startForegroundService(new Intent(this, NotificationService.class));
@@ -185,14 +194,14 @@ public class MainActivity extends AppCompatActivity {
                 getApplicationContext().startService(new Intent(this, NotificationService.class));
             }
         }
-        registerReceiver(serverPing, new IntentFilter("com.windworkshop.bphime.service"));
-        sendBroadcast(new Intent("com.windworkshop.bphime.client").putExtra("action", NotificationService.RELOAD_STATUE));
+        registerReceiver(serverPing, new IntentFilter(NotificationService.FOR_CLIENT));
+        sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.RELOAD_STATUE));
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        Log.i(logTag, "onStop");
+        MainModule.showLog( "onStop");
         unregisterReceiver(serverPing);
     }
 
