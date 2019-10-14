@@ -12,13 +12,14 @@ public class MainModule {
 
     }
     public static void showLog(String log){
-        Log.i(logTag, "BP-Hime");
+        Log.i(logTag, log);
+        /*
         if(context != null){
-            Intent intent = new Intent(NotificationService.FOR_CLIENT);
-            intent.putExtra("action", NotificationService.RECIVE_DANMU);
-            intent.putExtra("danmu_string", log);
-            intent.putExtra("isLog", true);
+            Intent intent = new Intent(NotificationService.FOR_SERVICE);
+            intent.putExtra("action", NotificationService.RECIVE_LOG);
+            intent.putExtra("log", log);
             context.sendBroadcast(intent);
         }
+*/
     }
 }

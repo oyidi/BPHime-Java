@@ -37,6 +37,9 @@ public class DanmuItem {
             } else if(cmd.equals("WELCOME")) { // 大佬入场
                 JSONObject data = json.getJSONObject("data");
                 welcomeName = data.getString("uname");
+            } else if(cmd.equals("log")) {
+                danmuText = json.getString("log");
+                userName = json.getString("time");
             }
 
         } catch (JSONException e) {

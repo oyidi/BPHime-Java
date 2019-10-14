@@ -26,7 +26,9 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -34,7 +36,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class NotificationService extends Service {
-    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50;
+    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, RECIVE_LOG = 21, STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50;
     public static String FOR_CLIENT = "com.windworkshop.bphime.service", FOR_SERVICE = "com.windworkshop.bphime.client";
     int NEW_DANMU = 10;
     NotificationManager notificationManager;
@@ -44,6 +46,7 @@ public class NotificationService extends Service {
     SharedPreferences sp;
     boolean vibrateNotification = false;
     Vibrator vibrator;
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     ArrayList<String> danmuRawData = new ArrayList<String>();
     @Override
@@ -55,7 +58,7 @@ public class NotificationService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             int action = intent.getIntExtra("action", 0);
-            MainModule.showLog( "service handle:" + action);
+            //MainModule.showLog( "service handle:" + action);
             if(action == START_CONNECTION) {
                 if(hasStart == false){
                     roomId = intent.getStringExtra("roomId");
@@ -70,6 +73,17 @@ public class NotificationService extends Service {
                 }
             } else if(action == STOP_CONNECTION) {
 
+            } else if(action == RECIVE_LOG) {
+                Intent sendIntent = new Intent(FOR_CLIENT);
+                sendIntent.putExtra("action", RECIVE_DANMU);
+                String logString = intent.getStringExtra("log");
+                String time = sdf.format(new Date());
+                sendIntent.putExtra("isLog", true);
+                sendIntent.putExtra("log", logString);
+                sendIntent.putExtra("time", time);
+                String logJsonString = "{\"cmd\":\"log\", \"log\":\"" + logString + "\",\"time\":\"" + time + "\"}";
+                danmuRawData.add(logJsonString);
+                sendBroadcast(sendIntent);
             } else if(action == RELOAD_STATUE) {
                   Intent pongIntent = new Intent(FOR_CLIENT);
                   pongIntent.putExtra("action", RELOAD_STATUE);
@@ -203,6 +217,7 @@ public class NotificationService extends Service {
                 ByteBuffer bf = packet.toBuffer();
                 this.send(bf);
                 sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_SUCCESS));
+                reconnectCoount = 0;
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -276,7 +291,7 @@ public class NotificationService extends Service {
                 handler.postDelayed(heartBeatRunnable, 30000);
             } else { // 连接被关闭
                 if(hasStart == true) { // 如果在运行中，则尝试重连
-                    MainModule.showLog( "HeartBeat try reconnect");
+                    MainModule.showLog( "HeartBeat try reconnect" + reconnectCoount);
                     reconnectCoount += 1;
                     if(reconnectCoount > 5) { // 重试5次不成功就完全停止
                         hasStart = false;

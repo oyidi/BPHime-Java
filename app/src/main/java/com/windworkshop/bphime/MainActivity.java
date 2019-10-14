@@ -82,15 +82,16 @@ public class MainActivity extends AppCompatActivity {
                 boolean isLog = intent.getBooleanExtra("isLog", false);
                 if(isLog == true) {
 
-                    String danmuRawData = intent.getStringExtra("danmu_string");
-                    DanmuItem danmu = new DanmuItem("log", danmuRawData, sdf.format(new Date()));
+                    String logString = intent.getStringExtra("log");
+                    String time = intent.getStringExtra("time");
+                    DanmuItem danmu = new DanmuItem("log", logString, time);
                     adapter.addDanmu(danmu);
                     handler.post(updateDanmuListRunnable);
                 } else {
                     String danmuRawData = intent.getStringExtra("danmu_string");
                     DanmuItem danmu = new DanmuItem(danmuRawData);
                     if(danmu.cmd != null) {
-                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
                             adapter.addDanmu(danmu);
                             handler.post(updateDanmuListRunnable);
                         }
@@ -114,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                 for(String danmuData : danmuStrings){
                     DanmuItem danmu = new DanmuItem(danmuData);
                     if(danmu.cmd != null) {
-                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
                             adapter.addDanmu(danmu);
                         }
                     }
@@ -132,7 +133,6 @@ public class MainActivity extends AppCompatActivity {
     CheckBox vibrateCheck;
 
     SharedPreferences sp;
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
