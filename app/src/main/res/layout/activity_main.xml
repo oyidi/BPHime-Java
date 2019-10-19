@@ -35,7 +35,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toLeftOf="@+id/vibrate_check"
-            android:text="start"
+            android:text="@string/start"
             />
         <CheckBox
             android:id="@+id/vibrate_check"

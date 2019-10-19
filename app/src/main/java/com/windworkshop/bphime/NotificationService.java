@@ -112,7 +112,7 @@ public class NotificationService extends Service {
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
         builder = new NotificationCompat.Builder(this, "danmu")
-                .setContentTitle("BP姬运行中")
+                .setContentTitle(getString(R.string.app_name)+"运行中")
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
