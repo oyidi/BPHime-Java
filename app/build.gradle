@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'mtj-circle-plugin'
 
 android {
     compileSdkVersion 28
@@ -17,8 +18,16 @@ android {
         }
     }
 }
-
+MtjCirclePluginConfig {
+    // 设置appkey
+    appkey = '9a06480ecd'
+    // 设置debug 开关，如果需要查看日志则打开开关，为避免影响性能建议上线前关闭（设置为false）
+    debug = false
+    // 默认启动此插件，如果开发者不需要可以禁用（设置为false）
+    enabled = true
+}
 dependencies {
+
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
     implementation 'com.android.support:appcompat-v7:28.0.0'
