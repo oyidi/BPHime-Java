@@ -186,7 +186,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        MainModule.showLog( "onStart");
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MainModule.showLog( "onResume");
         if(!isServiceRun(getApplicationContext(), "com.windworkshop.bphime.NotificationService")) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 getApplicationContext().startForegroundService(new Intent(this, NotificationService.class));
@@ -199,10 +205,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        MainModule.showLog( "onPause");
+        unregisterReceiver(serverPing);
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
-        MainModule.showLog( "onStop");
-        unregisterReceiver(serverPing);
+
     }
 
     /**
