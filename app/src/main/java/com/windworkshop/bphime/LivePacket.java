@@ -1,15 +1,11 @@
 package com.windworkshop.bphime;
 
-import android.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.zip.Inflater;
 
 /**
  * 封包处理类
@@ -29,6 +25,7 @@ public class LivePacket {
     /**
      * 从Buffer中初始化封包
      * @param buffer ByteBuffer数据
+     * @deprecated
      */
     public LivePacket(ByteBuffer buffer) {
         // 初始化封包
@@ -49,7 +46,7 @@ public class LivePacket {
             }
 
             try {
-                String zipString = new String(uncompress(realByteData));
+                String zipString = new String(MainModule.uncompress(realByteData));
                 ArrayList<JSONObject> dataArray = new ArrayList<JSONObject>();
                 int leftCount = 0;
                 int startIndex = 0;
@@ -74,8 +71,6 @@ public class LivePacket {
                         }
                     }
                 }
-                // MainModule.showLog("解码数据:"+zipString.replaceAll("[^\\x20-\\x7e]", ""));
-                // MainModule.showLog("解码数据:"+zipString.strip());
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
@@ -134,33 +129,5 @@ public class LivePacket {
             }
         }
         return bf;
-    }
-    /**
-     * @param inputByte 待解压缩的字节数组
-     * @return 解压缩后的字节数组
-     * @throws IOException
-     */
-    public static byte[] uncompress(byte[] inputByte) throws IOException {
-        int len = 0;
-        Inflater infl = new Inflater();
-        infl.setInput(inputByte);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        byte[] outByte = new byte[1024];
-        try {
-            while (!infl.finished()) {
-                // 解压缩并将解压缩后的内容输出到字节输出流bos中
-                len = infl.inflate(outByte);
-                if (len == 0) {
-                    break;
-                }
-                bos.write(outByte, 0, len);
-            }
-            infl.end();
-        } catch (Exception e) {
-            //
-        } finally {
-            bos.close();
-        }
-        return bos.toByteArray();
     }
 }

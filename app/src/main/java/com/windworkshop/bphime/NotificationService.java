@@ -14,7 +14,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
-import android.util.Log;
 import android.widget.Toast;
 
 import org.java_websocket.client.WebSocketClient;
@@ -234,7 +233,6 @@ public class NotificationService extends Service {
             int protocolVersion = 1;
             int packetType = 0;
             int sequence = 1;
-            //String packetData = "";
             // 初始化封包
             packetLength = buffer.getInt(0); // 第一个0-3位数据为总封包长数据
             int nums = buffer.getInt(4); // 第二个4-7位数据为需要分类的两个数据
@@ -245,59 +243,63 @@ public class NotificationService extends Service {
             //MainModule.showLog( "packetData 包数据raw : " + new String(buffer.array()));
             ArrayList<String> dataArray = new ArrayList<String>();
             if(protocolVersion == 2) {
-                byte[] rawByteData = buffer.array();
-                byte[] realByteData = new byte[rawByteData.length - 16];
-                for(int i = 0;i < realByteData.length;i++){
-                    realByteData[i] = rawByteData[16+ i];
-                }
                 try {
+                    // 新版协议用flater解压数据
+                    byte[] rawByteData = buffer.array();
+                    byte[] realByteData = new byte[rawByteData.length - 16];
+                    for(int i = 0;i < realByteData.length;i++){
+                        realByteData[i] = rawByteData[16+ i];
+                    }
                     String zipString = new String(MainModule.uncompress(realByteData));
-
+                    // 解压之后的数据似乎还包含着原有封包的头，长度有差异，并且将多个包拼接在一起，还会出现包数据不全的情况，手动截取包中多个json
+                    // 估计是为了减轻服务器压力才这么设计的
                     int leftCount = 0;
                     int startIndex = 0;
                     boolean inString = false;
                     for(int i = 0;i < zipString.length();i++) {
                         char c = zipString.charAt(i);
-                        if(leftCount <= 0) {
-                            if(c == '{') {
-                                startIndex = i;
-                                leftCount += 1;
-                            }
-                        } else {
-                            if(c == '{') {
-                                leftCount += 1;
-                            } else if(c == '}') {
-                                leftCount -= 1;
-                                if(leftCount == 0) {
-                                    String jsonString = zipString.substring(startIndex, i+1);
-                                    //MainModule.showLog("find json:" + jsonString);
-                                    dataArray.add(jsonString);
+                        if(c == '"') {
+                            inString = !inString;
+                        }
+                        if(inString == false) {
+                            if(leftCount <= 0) {
+                                if(c == '{') {
+                                    startIndex = i;
+                                    leftCount += 1;
+                                }
+                            } else {
+                                if(c == '{') {
+                                    leftCount += 1;
+                                } else if(c == '}') {
+                                    leftCount -= 1;
+                                    if(leftCount == 0) {
+                                        String jsonString = zipString.substring(startIndex, i+1);
+                                        //MainModule.showLog("find json:" + jsonString);
+                                        dataArray.add(jsonString);
+                                    }
                                 }
                             }
                         }
+
                     }
-                    // MainModule.showLog("解码数据:"+zipString.replaceAll("[^\\x20-\\x7e]", ""));
-                    // MainModule.showLog("解码数据:"+zipString.strip());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             } else {
-                //packetData = "";
+                // 旧版协议读取方式，两种协议并存中
                 if(packetLength > headerLength) {
                     String dataString = new String(buffer.array()); // 把所有buffer转换为String
                     if(dataString.indexOf("{") != -1 && dataString.indexOf("}")!= -1) {
                         // 挑出json格式的数据
                         dataString = dataString.substring(dataString.indexOf("{"), dataString.lastIndexOf("}")+1);
                         // 保存数据
-                        //packetData = dataString;
                         dataArray.add(dataString);
                        // MainModule.showLog( "packetData 包数据 : " + dataString);
                     }
-
                 }
             }
-
            // LivePacket packet = new LivePacket(buffer);
+            // 处理读出封包数据
             for(String dataString : dataArray) {
                 DanmuItem danmu = new DanmuItem(dataString);
                 if(danmu.cmd != null) {
@@ -318,7 +320,6 @@ public class NotificationService extends Service {
                 pongIntent.putExtra("danmu_string", dataString);
                 sendBroadcast(pongIntent);
             }
-
         }
 
         @Override
