@@ -179,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayShowHomeEnabled(true);
         actionBar.setDisplayUseLogoEnabled(true);
-        actionBar.setIcon(R.mipmap.action_bar_icon);
+        actionBar.setIcon(R.mipmap.ic_launcher_foreground);
 
     }
 

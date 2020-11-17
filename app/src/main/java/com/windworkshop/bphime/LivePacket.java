@@ -2,7 +2,14 @@ package com.windworkshop.bphime;
 
 import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.zip.Inflater;
 
 /**
  * 封包处理类
@@ -32,16 +39,58 @@ public class LivePacket {
         packetType = buffer.getInt(8); // 第三个8-11为封包类型
         sequence = buffer.getInt(12); // 第四个12-16为sequence
 
-        packetData = "";
-        if(packetLength > headerLength) {
-            String dataString = new String(buffer.array()); // 把所有buffer转换为String
-            if(dataString.indexOf("{") != -1 && dataString.indexOf("}")!= -1) {
-                // 挑出json格式的数据
-                dataString = dataString.substring(dataString.indexOf("{"), dataString.lastIndexOf("}")+1);
-                // 保存数据
-                packetData = dataString;
+        MainModule.showLog( "packetData 包数据raw : " + new String(buffer.array()));
+
+        if(protocolVersion == 2) {
+            byte[] rawByteData = buffer.array();
+            byte[] realByteData = new byte[rawByteData.length - 16];
+            for(int i = 0;i < realByteData.length;i++){
+                realByteData[i] = rawByteData[16+ i];
             }
-            MainModule.showLog( "packetData : " + packetData);
+
+            try {
+                String zipString = new String(uncompress(realByteData));
+                ArrayList<JSONObject> dataArray = new ArrayList<JSONObject>();
+                int leftCount = 0;
+                int startIndex = 0;
+                boolean inString = false;
+                for(int i = 0;i < zipString.length();i++) {
+                    char c = zipString.charAt(i);
+                    if(leftCount <= 0) {
+                        if(c == '{') {
+                            startIndex = i;
+                            leftCount += 1;
+                        }
+                    } else {
+                        if(c == '{') {
+                            leftCount += 1;
+                        } else if(c == '}') {
+                            leftCount -= 1;
+                            if(leftCount == 0) {
+                                String jsonString = zipString.substring(startIndex, i+1);
+                                MainModule.showLog("find json:" + jsonString);
+                                dataArray.add(new JSONObject(jsonString));
+                            }
+                        }
+                    }
+                }
+                // MainModule.showLog("解码数据:"+zipString.replaceAll("[^\\x20-\\x7e]", ""));
+                // MainModule.showLog("解码数据:"+zipString.strip());
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+        } else {
+            packetData = "";
+            if(packetLength > headerLength) {
+                String dataString = new String(buffer.array()); // 把所有buffer转换为String
+                if(dataString.indexOf("{") != -1 && dataString.indexOf("}")!= -1) {
+                    // 挑出json格式的数据
+                    dataString = dataString.substring(dataString.indexOf("{"), dataString.lastIndexOf("}")+1);
+                    // 保存数据
+                    packetData = dataString;
+                }
+                MainModule.showLog( "packetData 包数据 : " + packetData);
+            }
         }
     }
     // 创建封包基础方法
@@ -85,5 +134,33 @@ public class LivePacket {
             }
         }
         return bf;
+    }
+    /**
+     * @param inputByte 待解压缩的字节数组
+     * @return 解压缩后的字节数组
+     * @throws IOException
+     */
+    public static byte[] uncompress(byte[] inputByte) throws IOException {
+        int len = 0;
+        Inflater infl = new Inflater();
+        infl.setInput(inputByte);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] outByte = new byte[1024];
+        try {
+            while (!infl.finished()) {
+                // 解压缩并将解压缩后的内容输出到字节输出流bos中
+                len = infl.inflate(outByte);
+                if (len == 0) {
+                    break;
+                }
+                bos.write(outByte, 0, len);
+            }
+            infl.end();
+        } catch (Exception e) {
+            //
+        } finally {
+            bos.close();
+        }
+        return bos.toByteArray();
     }
 }

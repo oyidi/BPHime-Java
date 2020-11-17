@@ -118,7 +118,7 @@ public class NotificationService extends Service {
                 .setAutoCancel(true);
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
-            builder.setSmallIcon(R.mipmap.main_small_icon);
+            builder.setSmallIcon(R.mipmap.ic_launcher_foreground);
         } else {
             builder.setSmallIcon(R.mipmap.ic_launcher_foreground);
         }
@@ -225,28 +225,100 @@ public class NotificationService extends Service {
         }
 
         @Override
-        public void onMessage(ByteBuffer bytes) {
-            super.onMessage(bytes);
-            MainModule.showLog( "onMessage(ByteBuffer)");
-            LivePacket packet = new LivePacket(bytes);
-            DanmuItem danmu = new DanmuItem(packet.packetData);
-            if(danmu.cmd != null) {
-                if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
-                    if(danmu.cmd.equals("DANMU_MSG")) {
-                        builder.setContentText(danmu.userName+" : "+danmu.danmuText);
-                    } else if(danmu.cmd.equals("SEND_GIFT")) {
-                        builder.setContentText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
+        public void onMessage(ByteBuffer buffer) {
+            super.onMessage(buffer);
+            //MainModule.showLog( "onMessage(ByteBuffer)");
+
+            int packetLength = 0;
+            int headerLength = 16; //  默认封包头为16长度
+            int protocolVersion = 1;
+            int packetType = 0;
+            int sequence = 1;
+            //String packetData = "";
+            // 初始化封包
+            packetLength = buffer.getInt(0); // 第一个0-3位数据为总封包长数据
+            int nums = buffer.getInt(4); // 第二个4-7位数据为需要分类的两个数据
+            headerLength = nums >> 16; // 高两位（前16bit）为头部长度
+            protocolVersion = (nums << 16) >> 16; // 反复横跳获得低两位（后16bit）控制版本号
+            packetType = buffer.getInt(8); // 第三个8-11为封包类型
+            sequence = buffer.getInt(12); // 第四个12-16为sequence
+            //MainModule.showLog( "packetData 包数据raw : " + new String(buffer.array()));
+            ArrayList<String> dataArray = new ArrayList<String>();
+            if(protocolVersion == 2) {
+                byte[] rawByteData = buffer.array();
+                byte[] realByteData = new byte[rawByteData.length - 16];
+                for(int i = 0;i < realByteData.length;i++){
+                    realByteData[i] = rawByteData[16+ i];
+                }
+                try {
+                    String zipString = new String(MainModule.uncompress(realByteData));
+
+                    int leftCount = 0;
+                    int startIndex = 0;
+                    boolean inString = false;
+                    for(int i = 0;i < zipString.length();i++) {
+                        char c = zipString.charAt(i);
+                        if(leftCount <= 0) {
+                            if(c == '{') {
+                                startIndex = i;
+                                leftCount += 1;
+                            }
+                        } else {
+                            if(c == '{') {
+                                leftCount += 1;
+                            } else if(c == '}') {
+                                leftCount -= 1;
+                                if(leftCount == 0) {
+                                    String jsonString = zipString.substring(startIndex, i+1);
+                                    //MainModule.showLog("find json:" + jsonString);
+                                    dataArray.add(jsonString);
+                                }
+                            }
+                        }
                     }
-                    notificationManager.notify(NEW_DANMU, builder.build());
-                    if(vibrateNotification == true) {
-                        vibrator.vibrate(500);
+                    // MainModule.showLog("解码数据:"+zipString.replaceAll("[^\\x20-\\x7e]", ""));
+                    // MainModule.showLog("解码数据:"+zipString.strip());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                //packetData = "";
+                if(packetLength > headerLength) {
+                    String dataString = new String(buffer.array()); // 把所有buffer转换为String
+                    if(dataString.indexOf("{") != -1 && dataString.indexOf("}")!= -1) {
+                        // 挑出json格式的数据
+                        dataString = dataString.substring(dataString.indexOf("{"), dataString.lastIndexOf("}")+1);
+                        // 保存数据
+                        //packetData = dataString;
+                        dataArray.add(dataString);
+                       // MainModule.showLog( "packetData 包数据 : " + dataString);
                     }
+
                 }
             }
-            danmuRawData.add(packet.packetData);
-            Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", RECIVE_DANMU);
-            pongIntent.putExtra("danmu_string", packet.packetData);
-            sendBroadcast(pongIntent);
+
+           // LivePacket packet = new LivePacket(buffer);
+            for(String dataString : dataArray) {
+                DanmuItem danmu = new DanmuItem(dataString);
+                if(danmu.cmd != null) {
+                    if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                        if(danmu.cmd.equals("DANMU_MSG")) {
+                            builder.setContentText(danmu.userName+" : "+danmu.danmuText);
+                        } else if(danmu.cmd.equals("SEND_GIFT")) {
+                            builder.setContentText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
+                        }
+                        notificationManager.notify(NEW_DANMU, builder.build());
+                        if(vibrateNotification == true) {
+                            vibrator.vibrate(500);
+                        }
+                    }
+                }
+                danmuRawData.add(dataString);
+                Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", RECIVE_DANMU);
+                pongIntent.putExtra("danmu_string", dataString);
+                sendBroadcast(pongIntent);
+            }
+
         }
 
         @Override
