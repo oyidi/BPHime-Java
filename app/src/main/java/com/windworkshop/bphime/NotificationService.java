@@ -48,8 +48,9 @@ public class NotificationService extends Service {
     boolean vibrateNotification = false;
     Vibrator vibrator;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    HistoryData historyData;
 
-    ArrayList<String> danmuRawData = new ArrayList<String>();
+    ArrayList<DanmuItem> danmuData = new ArrayList<DanmuItem>();
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -79,18 +80,20 @@ public class NotificationService extends Service {
                 sendIntent.putExtra("action", RECIVE_DANMU);
                 String logString = intent.getStringExtra("log");
                 String time = sdf.format(new Date());
+                DanmuItem logDanmu = new DanmuItem("log", logString, time);
                 sendIntent.putExtra("isLog", true);
-                sendIntent.putExtra("log", logString);
-                sendIntent.putExtra("time", time);
-                String logJsonString = "{\"cmd\":\"log\", \"log\":\"" + logString + "\",\"time\":\"" + time + "\"}";
-                danmuRawData.add(logJsonString);
+                sendIntent.putExtra("log", logDanmu);
+                //sendIntent.putExtra("time", time);
+                //String logJsonString = "{\"cmd\":\"log\", \"log\":\"" + logString + "\",\"time\":\"" + time + "\"}";
+
+                danmuData.add(logDanmu);
                 sendBroadcast(sendIntent);
             } else if(action == RELOAD_STATUE) {
                   Intent pongIntent = new Intent(FOR_CLIENT);
                   pongIntent.putExtra("action", RELOAD_STATUE);
                   pongIntent.putExtra("hasStart", hasStart);
 
-                  pongIntent.putExtra("danmu_strings", danmuRawData);
+                  pongIntent.putExtra("danmu_items", danmuData);
 
                   sendBroadcast(pongIntent);
                   MainModule.showLog( "service RELOAD_STATUE:" + hasStart);
@@ -104,6 +107,7 @@ public class NotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         MainModule.setContext(getApplicationContext());
+        historyData = new HistoryData(getApplicationContext());
         sp = getSharedPreferences("config",Context.MODE_PRIVATE);
         loadProfile();
         vibrator = (Vibrator) getSystemService(Service.VIBRATOR_SERVICE);
@@ -331,6 +335,7 @@ public class NotificationService extends Service {
                     if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
                         if(danmu.cmd.equals("DANMU_MSG")) {
                             builder.setContentText(danmu.userName+" : "+danmu.danmuText);
+                            historyData.addHistory(roomId, danmu, new Date().getTime());
                         } else if(danmu.cmd.equals("SEND_GIFT")) {
                             builder.setContentText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
                         }
@@ -340,9 +345,10 @@ public class NotificationService extends Service {
                         }
                     }
                 }
-                danmuRawData.add(dataString);
+
+                danmuData.add(danmu);
                 Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", RECIVE_DANMU);
-                pongIntent.putExtra("danmu_string", dataString);
+                pongIntent.putExtra("danmu_item", danmu);
                 sendBroadcast(pongIntent);
             }
         }
@@ -416,7 +422,7 @@ public class NotificationService extends Service {
         @Override
         public void run() {
             if(hasStart == true) {
-                Toast.makeText(getApplicationContext(), "检测到已断开连接等待重连", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), "检测到已断开连接等待重连", Toast.LENGTH_SHORT).show();
             } else{
                 if(!client.isClosing() || !client.isClosed()){
                     client.close();

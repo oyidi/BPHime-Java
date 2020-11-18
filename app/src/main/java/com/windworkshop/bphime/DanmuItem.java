@@ -17,12 +17,18 @@ public class DanmuItem implements Parcelable {
     String giftUserName;
     int giftNum;
     String welcomeName;
+    long reciveTime;
     public DanmuItem(String cmd, String log, String time) {
         this.cmd = cmd;
         this.danmuText = log;
         this.userName = time;
     }
-
+    public DanmuItem(String username, String text, long time) {
+        this.cmd = "DANMU_MSG";
+        this.userName = username;
+        this.danmuText = text;
+        this.reciveTime = time;
+    }
     public DanmuItem(String rawdata) {
         danmuData = rawdata;
         // 初始化弹幕并进行分类
@@ -61,6 +67,7 @@ public class DanmuItem implements Parcelable {
         giftUserName = in.readString();
         giftNum = in.readInt();
         welcomeName = in.readString();
+        reciveTime = in.readLong();
     }
 
     public static final Creator<DanmuItem> CREATOR = new Creator<DanmuItem>() {
@@ -90,5 +97,6 @@ public class DanmuItem implements Parcelable {
         parcel.writeString(giftUserName);
         parcel.writeInt(giftNum);
         parcel.writeString(welcomeName);
+        parcel.writeLong(reciveTime);
     }
 }

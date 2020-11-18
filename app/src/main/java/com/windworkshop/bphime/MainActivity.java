@@ -81,15 +81,14 @@ public class MainActivity extends AppCompatActivity {
             } else if(action == NotificationService.RECIVE_DANMU) {
                 boolean isLog = intent.getBooleanExtra("isLog", false);
                 if(isLog == true) {
-
-                    String logString = intent.getStringExtra("log");
-                    String time = intent.getStringExtra("time");
-                    DanmuItem danmu = new DanmuItem("log", logString, time);
+                    //String logString = intent.getStringExtra("log");
+                    //String time = intent.getStringExtra("time");
+                    DanmuItem danmu = intent.getParcelableExtra("log");//new DanmuItem("log", logString, time);
                     adapter.addDanmu(danmu);
                     handler.post(updateDanmuListRunnable);
                 } else {
-                    String danmuRawData = intent.getStringExtra("danmu_string");
-                    DanmuItem danmu = new DanmuItem(danmuRawData);
+                    //String danmuRawData = intent.getStringExtra("danmu_item");
+                    DanmuItem danmu = intent.getParcelableExtra("danmu_item");
                     if(danmu.cmd != null) {
                         if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
                             adapter.addDanmu(danmu);
@@ -119,10 +118,9 @@ public class MainActivity extends AppCompatActivity {
                         startButton.setText(R.string.start);
                         startButton.setEnabled(true);
                     }
-                    ArrayList<String> danmuStrings = intent.getStringArrayListExtra("danmu_strings");
+                    ArrayList<DanmuItem> danmuItems = intent.getParcelableArrayListExtra("danmu_items");
 
-                    for(String danmuData : danmuStrings){
-                        DanmuItem danmu = new DanmuItem(danmuData);
+                    for(DanmuItem danmu : danmuItems){
                         if(danmu.cmd != null) {
                             if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
                                 adapter.addDanmu(danmu);
