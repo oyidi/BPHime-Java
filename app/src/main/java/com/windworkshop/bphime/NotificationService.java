@@ -19,6 +19,7 @@ import android.widget.Toast;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.handshake.ServerHandshake;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -35,7 +36,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class NotificationService extends Service {
-    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, RECIVE_LOG = 21, STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50;
+    public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, RECIVE_LOG = 21,
+            STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50, LOAD_REMOTE_HISTORY = 60;
     public static String FOR_CLIENT = "com.windworkshop.bphime.service", FOR_SERVICE = "com.windworkshop.bphime.client";
     int NEW_DANMU = 10;
     NotificationManager notificationManager;
@@ -181,6 +183,29 @@ public class NotificationService extends Service {
                     int code = resultJson.getInt("code");
                     if(code == 0) {
                         roomId = String.valueOf(resultJson.getJSONObject("data").getInt("room_id"));
+
+                        Request historyRequest = new Request.Builder().url("https://api.live.bilibili.com/xlive/web-room/v1/dM/gethistory?roomid="+roomId).build();
+                        Response historyResponse = httpClient.newCall(historyRequest).execute();
+                        if (historyResponse.isSuccessful()) {
+                            String historyResult = historyResponse.body().string();
+                            ArrayList<DanmuItem> danmuList = new ArrayList<DanmuItem>();
+                            JSONObject historyResultJson = new JSONObject(historyResult);
+                            int historyResultCode = historyResultJson.getInt("code");
+                            if(historyResultCode == 0) {
+                                JSONObject dataJson = historyResultJson.getJSONObject("data");
+                                //MainModule.showLog(dataJson.toString());
+                                JSONArray danmus = dataJson.getJSONArray("room");
+                                for(int i = 0;i < danmus.length();i++) {
+                                    JSONObject danmu = danmus.getJSONObject(i);
+                                    DanmuItem danmuItem = new DanmuItem("DANMU_MSG", danmu.getString("text"), danmu.getString("nickname"));
+                                    danmuList.add(danmuItem);
+                                }
+                            }
+                            Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", LOAD_REMOTE_HISTORY);
+                            pongIntent.putExtra("history_danmus", danmuList);
+                            sendBroadcast(pongIntent);
+                        }
+
                         client = new JWebSocketClient(URI.create("wss://broadcastlv.chat.bilibili.com:2245/sub"));
                         client.connect();
                         handler.postDelayed(heartBeatRunnable, 30000);

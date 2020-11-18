@@ -100,27 +100,38 @@ public class MainActivity extends AppCompatActivity {
             } else if(action == NotificationService.STOP_CONNECTION) {
                 startButton.setText(R.string.start);
                 startButton.setEnabled(true);
-            } else if(action == NotificationService.RELOAD_STATUE) {
-                boolean hasStart = intent.getBooleanExtra("hasStart", false);
-                MainModule.showLog( "client RELOAD_STATUE:" + hasStart);
-                if(hasStart == true) {
-                    startButton.setText(R.string.stop);
-                    startButton.setEnabled(true);
-                } else {
-                    startButton.setText(R.string.start);
-                    startButton.setEnabled(true);
-                }
-                ArrayList<String> danmuStrings = intent.getStringArrayListExtra("danmu_strings");
-
-                for(String danmuData : danmuStrings){
-                    DanmuItem danmu = new DanmuItem(danmuData);
-                    if(danmu.cmd != null) {
-                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
-                            adapter.addDanmu(danmu);
-                        }
-                    }
+            } else if(action == NotificationService.LOAD_REMOTE_HISTORY) {
+                adapter.clear();
+                ArrayList<DanmuItem> danmuList = intent.getParcelableArrayListExtra("history_danmus");
+                for(DanmuItem danmuData : danmuList){
+                    adapter.addDanmu(danmuData);
                 }
                 handler.post(updateDanmuListRunnable);
+
+            } else if(action == NotificationService.RELOAD_STATUE) {
+                if(hasloaded == false) {
+                    boolean hasStart = intent.getBooleanExtra("hasStart", false);
+                    MainModule.showLog( "client RELOAD_STATUE:" + hasStart);
+                    if(hasStart == true) {
+                        startButton.setText(R.string.stop);
+                        startButton.setEnabled(true);
+                    } else {
+                        startButton.setText(R.string.start);
+                        startButton.setEnabled(true);
+                    }
+                    ArrayList<String> danmuStrings = intent.getStringArrayListExtra("danmu_strings");
+
+                    for(String danmuData : danmuStrings){
+                        DanmuItem danmu = new DanmuItem(danmuData);
+                        if(danmu.cmd != null) {
+                            if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
+                                adapter.addDanmu(danmu);
+                            }
+                        }
+                    }
+                    handler.post(updateDanmuListRunnable);
+                    hasloaded = true;
+                }
             }
         }
     };
@@ -133,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
     CheckBox vibrateCheck;
 
     SharedPreferences sp;
+    boolean hasloaded = false; // 初次载入
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -1,10 +1,14 @@
 package com.windworkshop.bphime;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class DanmuItem {
+
+public class DanmuItem implements Parcelable {
     String danmuData;
     String cmd;
     String danmuText;
@@ -18,6 +22,7 @@ public class DanmuItem {
         this.danmuText = log;
         this.userName = time;
     }
+
     public DanmuItem(String rawdata) {
         danmuData = rawdata;
         // 初始化弹幕并进行分类
@@ -45,5 +50,45 @@ public class DanmuItem {
         } catch (JSONException e) {
             //e.printStackTrace();
         }
+    }
+
+    protected DanmuItem(Parcel in) {
+        danmuData = in.readString();
+        cmd = in.readString();
+        danmuText = in.readString();
+        userName = in.readString();
+        giftName = in.readString();
+        giftUserName = in.readString();
+        giftNum = in.readInt();
+        welcomeName = in.readString();
+    }
+
+    public static final Creator<DanmuItem> CREATOR = new Creator<DanmuItem>() {
+        @Override
+        public DanmuItem createFromParcel(Parcel in) {
+            return new DanmuItem(in);
+        }
+
+        @Override
+        public DanmuItem[] newArray(int size) {
+            return new DanmuItem[size];
+        }
+    };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int i) {
+        parcel.writeString(danmuData);
+        parcel.writeString(cmd);
+        parcel.writeString(danmuText);
+        parcel.writeString(userName);
+        parcel.writeString(giftName);
+        parcel.writeString(giftUserName);
+        parcel.writeInt(giftNum);
+        parcel.writeString(welcomeName);
     }
 }
