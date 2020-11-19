@@ -10,12 +10,16 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.ActionBar;
+import android.support.annotation.NonNull;
+import android.support.design.widget.NavigationView;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
+import android.support.v7.widget.Toolbar;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -24,9 +28,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
@@ -74,20 +76,17 @@ public class MainActivity extends AppCompatActivity {
            // MainModule.showLog( "client handle:" + action);
             if(action == NotificationService.START_CONNECTION_FINISH) {
 
-            } else if(action == NotificationService.START_CONNECTION_SUCCESS) {
+            } else if(action == NotificationService.START_CONNECTION_SUCCESS) { // 接收到新弹幕
                 startButton.setEnabled(true);
                 Toast.makeText(getApplicationContext(), "启动成功", Toast.LENGTH_SHORT).show();
                 startButton.setText(R.string.stop);
             } else if(action == NotificationService.RECIVE_DANMU) {
                 boolean isLog = intent.getBooleanExtra("isLog", false);
-                if(isLog == true) {
-                    //String logString = intent.getStringExtra("log");
-                    //String time = intent.getStringExtra("time");
+                if(isLog == true) { // 日志
                     DanmuItem danmu = intent.getParcelableExtra("log");//new DanmuItem("log", logString, time);
                     adapter.addDanmu(danmu);
                     handler.post(updateDanmuListRunnable);
-                } else {
-                    //String danmuRawData = intent.getStringExtra("danmu_item");
+                } else { // 普通弹幕
                     DanmuItem danmu = intent.getParcelableExtra("danmu_item");
                     if(danmu.cmd != null) {
                         if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
@@ -99,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
             } else if(action == NotificationService.STOP_CONNECTION) {
                 startButton.setText(R.string.start);
                 startButton.setEnabled(true);
-            } else if(action == NotificationService.LOAD_REMOTE_HISTORY) {
+            } else if(action == NotificationService.LOAD_REMOTE_HISTORY) { // 加载服务端提供的历史弹幕
                 adapter.clear();
                 ArrayList<DanmuItem> danmuList = intent.getParcelableArrayListExtra("history_danmus");
                 for(DanmuItem danmuData : danmuList){
@@ -107,19 +106,19 @@ public class MainActivity extends AppCompatActivity {
                 }
                 handler.post(updateDanmuListRunnable);
 
-            } else if(action == NotificationService.RELOAD_STATUE) {
-                if(hasloaded == false) {
+            } else if(action == NotificationService.RELOAD_STATUE) { // 重新加载弹幕内容
+                if(hasloaded == false) { // 只加载一次，Activity未被干掉的时候不重复加载
                     boolean hasStart = intent.getBooleanExtra("hasStart", false);
                     MainModule.showLog( "client RELOAD_STATUE:" + hasStart);
-                    if(hasStart == true) {
+                    if(hasStart == true) { // 设置按钮状态
                         startButton.setText(R.string.stop);
                         startButton.setEnabled(true);
                     } else {
                         startButton.setText(R.string.start);
                         startButton.setEnabled(true);
                     }
+                    // 恢复弹幕到列表
                     ArrayList<DanmuItem> danmuItems = intent.getParcelableArrayListExtra("danmu_items");
-
                     for(DanmuItem danmu : danmuItems){
                         if(danmu.cmd != null) {
                             if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
@@ -142,6 +141,10 @@ public class MainActivity extends AppCompatActivity {
     CheckBox vibrateCheck;
     EditText danmuSendEdittext;
     Button danmuSendButton;
+
+    Toolbar toolbar;
+    DrawerLayout drawerLayout;
+    NavigationView navigationView;
 
     SharedPreferences sp;
     boolean hasloaded = false; // 初次载入
@@ -194,16 +197,42 @@ public class MainActivity extends AppCompatActivity {
         danmuSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.SEND_DANMU).putExtra("send_danmu", danmuSendEdittext.getText().toString()));
-                danmuSendEdittext.setText("");
+                String danmu = danmuSendEdittext.getText().toString();
+                if(!danmu.equals("")) {
+                    if(danmu.length() <= 30) {
+                        sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.SEND_DANMU).putExtra("send_danmu", danmuSendEdittext.getText().toString()));
+                        danmuSendEdittext.setText("");
+                    } else {
+                        Toast.makeText(getApplicationContext(), "弹幕超出30个字符长度", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(getApplicationContext(), "弹幕为空", Toast.LENGTH_SHORT).show();
+                }
+
+            }
+        });
+        drawerLayout = findViewById(R.id.main_drawer_layout);
+        navigationView = findViewById(R.id.main_navigation_view);
+        navigationView.setItemIconTintList(null);
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
+                if(menuItem.getItemId() == R.id.main_menu_histoty) {
+
+                } else if(menuItem.getItemId() == R.id.main_menu_setting) {
+                    startActivity(new Intent(getApplicationContext(), SettingActivity.class));
+                }
+                return true;
             }
         });
 
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayShowHomeEnabled(true);
-        actionBar.setDisplayUseLogoEnabled(true);
-        actionBar.setIcon(R.mipmap.ic_launcher_foreground);
+        toolbar = findViewById(R.id.main_toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
 
+        ActionBarDrawerToggle drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.navigation_drawer_open,R.string.navigation_drawer_close);
+        drawerLayout.addDrawerListener(drawerToggle);
+        drawerToggle.syncState();
     }
 
     @Override

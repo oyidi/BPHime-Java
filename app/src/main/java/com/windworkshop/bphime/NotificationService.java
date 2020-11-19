@@ -47,41 +47,7 @@ public class NotificationService extends Service {
     NotificationManager notificationManager;
     NotificationCompat.Builder builder;
 
-    @SuppressLint("HandlerLeak")
     Handler handler = new Handler();
-    String sendingDanmu;
-    Runnable sendDanmuRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if(sendingDanmu != null) {
-                try {
-                    String sid = sp.getString("sid", "");
-                    String DedeUserID = sp.getString("DedeUserID", "");
-                    String DedeUserID__ckMd5 = sp.getString("DedeUserID__ckMd5", "");
-                    String SESSDATA = sp.getString("SESSDATA", "");
-                    String bili_jct = sp.getString("bili_jct", "");
-                    String LIVE_BUVID = sp.getString("LIVE_BUVID", "");
-
-                    String danmuContext = sendingDanmu;
-                    long rnd = new Date().getTime() / 1000;
-                    RequestBody postRequest = RequestBody.create("color=16777215&fontsize=25&mode=1&msg="+danmuContext+"&rnd="+rnd+"&roomid="+roomId+"&csrf_token="+bili_jct+"&csrf="+bili_jct+"", MediaType.parse("application/x-www-form-urlencoded"));
-                    OkHttpClient httpClient = new OkHttpClient.Builder().writeTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).connectTimeout(10, TimeUnit.SECONDS).build();
-                    Request request = new Request.Builder().url("https://api.live.bilibili.com/msg/send").addHeader("User-Agnet", "BPHime")
-                            .addHeader("Cookie", "sid="+sid+"; DedeUserID="+DedeUserID+"; DedeUserID__ckMd5="+DedeUserID__ckMd5+"; SESSDATA="+SESSDATA+"; bili_jct="+bili_jct+"; LIVE_BUVID="+LIVE_BUVID+"")
-                            .post(postRequest)
-                            .build();
-                    Response response = httpClient.newCall(request).execute();
-                    if (response.isSuccessful()) {
-                        String responResult = response.body().string();
-                        MainModule.showLog("send danmu result: "+responResult);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                sendingDanmu = null;
-            }
-        }
-    };
 
     SharedPreferences sp;
     boolean vibrateNotification = false;
@@ -114,7 +80,7 @@ public class NotificationService extends Service {
                 }
             } else if(action == STOP_CONNECTION) {
 
-            } else if(action == SEND_DANMU) {
+            } else if(action == SEND_DANMU) { // 发送弹幕，需要先启动服务，不至于发了没收到结果
                 if(hasStart == true){
                     String sendDanmeContext = intent.getStringExtra("send_danmu");
                     sendingDanmu = sendDanmeContext;
@@ -123,25 +89,21 @@ public class NotificationService extends Service {
                 } else {
                     Toast.makeText(getApplicationContext(), "请先启动", Toast.LENGTH_SHORT).show();
                 }
-            } else if(action == RECIVE_LOG) {
+            } else if(action == RECIVE_LOG) { // 接收日志
                 Intent sendIntent = new Intent(FOR_CLIENT);
                 sendIntent.putExtra("action", RECIVE_DANMU);
                 String logString = intent.getStringExtra("log");
                 String time = sdf.format(new Date());
-                DanmuItem logDanmu = new DanmuItem("log", logString, time);
+                DanmuItem logDanmu = new DanmuItem("log", logString, time); // 日志的特殊格式弹幕
                 sendIntent.putExtra("isLog", true);
                 sendIntent.putExtra("log", logDanmu);
-                //sendIntent.putExtra("time", time);
-                //String logJsonString = "{\"cmd\":\"log\", \"log\":\"" + logString + "\",\"time\":\"" + time + "\"}";
                 danmuData.add(logDanmu);
                 sendBroadcast(sendIntent);
-            } else if(action == RELOAD_STATUE) {
+            } else if(action == RELOAD_STATUE) { // Activity的重载数据请求
                   Intent pongIntent = new Intent(FOR_CLIENT);
                   pongIntent.putExtra("action", RELOAD_STATUE);
                   pongIntent.putExtra("hasStart", hasStart);
-
                   pongIntent.putExtra("danmu_items", danmuData);
-
                   sendBroadcast(pongIntent);
                   MainModule.showLog( "service RELOAD_STATUE:" + hasStart);
             } else if(action == REFRESH_CONFIG) {
@@ -159,6 +121,7 @@ public class NotificationService extends Service {
         loadProfile();
         vibrator = (Vibrator) getSystemService(Service.VIBRATOR_SERVICE);
 
+        // 前台服务启动
         Intent intent = new Intent(this, MainActivity.class);
         intent.setAction(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -174,8 +137,9 @@ public class NotificationService extends Service {
         } else {
             builder.setSmallIcon(R.mipmap.ic_launcher_foreground);
         }
+        // 高版本Android前台通知栏配置
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel("danmu", "new_danmu", NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel notificationChannel = new NotificationChannel("danmu", "接收弹幕通知", NotificationManager.IMPORTANCE_LOW);
             notificationChannel.canShowBadge();
             notificationChannel.setShowBadge(true);
             notificationChannel.setSound(null, null);
@@ -202,9 +166,11 @@ public class NotificationService extends Service {
         return super.onUnbind(intent);
     }
 
+    @SuppressLint("WrongConstant")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         MainModule.showLog( "service onStartCommand");
+        flags = START_STICKY;
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -212,10 +178,44 @@ public class NotificationService extends Service {
         vibrateNotification = sp.getBoolean("vibrate", false);
     }
 
+    // 弹幕发送
+    String sendingDanmu;
+    Runnable sendDanmuRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if(sendingDanmu != null) {
+                try {
+                    // 准备几个关键的Cookie
+                    String sid = sp.getString("sid", "");
+                    String DedeUserID = sp.getString("DedeUserID", "");
+                    String DedeUserID__ckMd5 = sp.getString("DedeUserID__ckMd5", "");
+                    String SESSDATA = sp.getString("SESSDATA", "");
+                    String bili_jct = sp.getString("bili_jct", "");
+                    String LIVE_BUVID = sp.getString("LIVE_BUVID", "");
+                    String danmuContext = sendingDanmu;
+                    long rnd = new Date().getTime() / 1000;
+                    RequestBody postRequest = RequestBody.create("color=16777215&fontsize=25&mode=1&msg="+danmuContext+"&rnd="+rnd+"&roomid="+roomId+"&csrf_token="+bili_jct+"&csrf="+bili_jct+"", MediaType.parse("application/x-www-form-urlencoded"));
+                    OkHttpClient httpClient = new OkHttpClient.Builder().writeTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).connectTimeout(10, TimeUnit.SECONDS).build();
+                    Request request = new Request.Builder().url("https://api.live.bilibili.com/msg/send").addHeader("User-Agnet", "BPHime")
+                            .addHeader("Cookie", "sid="+sid+"; DedeUserID="+DedeUserID+"; DedeUserID__ckMd5="+DedeUserID__ckMd5+"; SESSDATA="+SESSDATA+"; bili_jct="+bili_jct+"; LIVE_BUVID="+LIVE_BUVID+"")
+                            .post(postRequest)
+                            .build();
+                    Response response = httpClient.newCall(request).execute();
+                    if (response.isSuccessful()) {
+                        String responResult = response.body().string();
+                        MainModule.showLog("send danmu result: "+responResult);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                sendingDanmu = null;
+            }
+        }
+    };
+
     JWebSocketClient client = null;
     boolean hasStart = false;
     String roomId;
-
 
     /**
      * 在Thread中的启动线程
@@ -232,9 +232,8 @@ public class NotificationService extends Service {
                     String responResult = response.body().string();
                     JSONObject resultJson = new JSONObject(responResult);
                     int code = resultJson.getInt("code");
-                    if(code == 0) {
+                    if(code == 0) { // 获取完房间号再获取历史弹幕
                         roomId = String.valueOf(resultJson.getJSONObject("data").getInt("room_id"));
-
                         Request historyRequest = new Request.Builder().url("https://api.live.bilibili.com/xlive/web-room/v1/dM/gethistory?roomid="+roomId).build();
                         Response historyResponse = httpClient.newCall(historyRequest).execute();
                         if (historyResponse.isSuccessful()) {
@@ -249,14 +248,15 @@ public class NotificationService extends Service {
                                 for(int i = 0;i < danmus.length();i++) {
                                     JSONObject danmu = danmus.getJSONObject(i);
                                     DanmuItem danmuItem = new DanmuItem("DANMU_MSG", danmu.getString("text"), danmu.getString("nickname"));
-                                    danmuList.add(danmuItem);
+                                    danmuList.add(danmuItem); // 添加到返回Activitry弹幕列表
+                                    danmuData.add(danmuItem); // 添加到总弹幕列表
                                 }
                             }
                             Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", LOAD_REMOTE_HISTORY);
                             pongIntent.putExtra("history_danmus", danmuList);
                             sendBroadcast(pongIntent);
                         }
-
+                        // WebSocket，启动
                         client = new JWebSocketClient(URI.create("wss://broadcastlv.chat.bilibili.com:2245/sub"));
                         client.connect();
                         handler.postDelayed(heartBeatRunnable, 30000);
@@ -274,9 +274,6 @@ public class NotificationService extends Service {
 
         }
     };
-
-
-
     public class JWebSocketClient extends WebSocketClient {
         public JWebSocketClient(URI serverUri) {
             super(serverUri, new Draft_6455());

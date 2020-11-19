@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/main_menu_histoty"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="@string/main_menu_histoty_text" />
+    <item
+        android:id="@+id/main_menu_setting"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="@string/main_menu_setting_text"/>
+
+</menu>

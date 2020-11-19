@@ -2,4 +2,9 @@
     <string name="app_name">BP姬</string>
     <string name="start">开始</string>
     <string name="stop">停止</string>
+    <string name="main_menu_histoty_text">历史弹幕</string>
+    <string name="main_menu_setting_text">设置</string>
+
+    <string name="navigation_drawer_open">show</string>
+    <string name="navigation_drawer_close">close</string>
 </resources>
