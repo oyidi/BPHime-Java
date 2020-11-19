@@ -1,5 +1,6 @@
 package com.windworkshop.bphime;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -12,6 +13,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.widget.Toast;
@@ -31,18 +33,55 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class NotificationService extends Service {
     public static int START_CONNECTION = 10, START_CONNECTION_FINISH = 11, START_CONNECTION_SUCCESS = 12, RECIVE_DANMU = 20, RECIVE_LOG = 21,
-            STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50, LOAD_REMOTE_HISTORY = 60;
+            STOP_CONNECTION = 30, RELOAD_STATUE = 40, REFRESH_CONFIG = 50, LOAD_REMOTE_HISTORY = 60, SEND_DANMU = 70;
     public static String FOR_CLIENT = "com.windworkshop.bphime.service", FOR_SERVICE = "com.windworkshop.bphime.client";
     int NEW_DANMU = 10;
     NotificationManager notificationManager;
     NotificationCompat.Builder builder;
+
+    @SuppressLint("HandlerLeak")
     Handler handler = new Handler();
+    String sendingDanmu;
+    Runnable sendDanmuRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if(sendingDanmu != null) {
+                try {
+                    String sid = sp.getString("sid", "");
+                    String DedeUserID = sp.getString("DedeUserID", "");
+                    String DedeUserID__ckMd5 = sp.getString("DedeUserID__ckMd5", "");
+                    String SESSDATA = sp.getString("SESSDATA", "");
+                    String bili_jct = sp.getString("bili_jct", "");
+                    String LIVE_BUVID = sp.getString("LIVE_BUVID", "");
+
+                    String danmuContext = sendingDanmu;
+                    long rnd = new Date().getTime() / 1000;
+                    RequestBody postRequest = RequestBody.create("color=16777215&fontsize=25&mode=1&msg="+danmuContext+"&rnd="+rnd+"&roomid="+roomId+"&csrf_token="+bili_jct+"&csrf="+bili_jct+"", MediaType.parse("application/x-www-form-urlencoded"));
+                    OkHttpClient httpClient = new OkHttpClient.Builder().writeTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).connectTimeout(10, TimeUnit.SECONDS).build();
+                    Request request = new Request.Builder().url("https://api.live.bilibili.com/msg/send").addHeader("User-Agnet", "BPHime")
+                            .addHeader("Cookie", "sid="+sid+"; DedeUserID="+DedeUserID+"; DedeUserID__ckMd5="+DedeUserID__ckMd5+"; SESSDATA="+SESSDATA+"; bili_jct="+bili_jct+"; LIVE_BUVID="+LIVE_BUVID+"")
+                            .post(postRequest)
+                            .build();
+                    Response response = httpClient.newCall(request).execute();
+                    if (response.isSuccessful()) {
+                        String responResult = response.body().string();
+                        MainModule.showLog("send danmu result: "+responResult);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                sendingDanmu = null;
+            }
+        }
+    };
 
     SharedPreferences sp;
     boolean vibrateNotification = false;
@@ -75,6 +114,15 @@ public class NotificationService extends Service {
                 }
             } else if(action == STOP_CONNECTION) {
 
+            } else if(action == SEND_DANMU) {
+                if(hasStart == true){
+                    String sendDanmeContext = intent.getStringExtra("send_danmu");
+                    sendingDanmu = sendDanmeContext;
+                    Thread thread = new Thread(sendDanmuRunnable);
+                    thread.start();
+                } else {
+                    Toast.makeText(getApplicationContext(), "请先启动", Toast.LENGTH_SHORT).show();
+                }
             } else if(action == RECIVE_LOG) {
                 Intent sendIntent = new Intent(FOR_CLIENT);
                 sendIntent.putExtra("action", RECIVE_DANMU);
@@ -85,7 +133,6 @@ public class NotificationService extends Service {
                 sendIntent.putExtra("log", logDanmu);
                 //sendIntent.putExtra("time", time);
                 //String logJsonString = "{\"cmd\":\"log\", \"log\":\"" + logString + "\",\"time\":\"" + time + "\"}";
-
                 danmuData.add(logDanmu);
                 sendBroadcast(sendIntent);
             } else if(action == RELOAD_STATUE) {

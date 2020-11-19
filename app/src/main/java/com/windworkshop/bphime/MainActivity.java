@@ -140,6 +140,8 @@ public class MainActivity extends AppCompatActivity {
     EditText roomIdEdittext;
     Button startButton;
     CheckBox vibrateCheck;
+    EditText danmuSendEdittext;
+    Button danmuSendButton;
 
     SharedPreferences sp;
     boolean hasloaded = false; // 初次载入
@@ -186,6 +188,17 @@ public class MainActivity extends AppCompatActivity {
                 sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.REFRESH_CONFIG));
             }
         });
+
+        danmuSendEdittext = findViewById(R.id.send_danmu_context);
+        danmuSendButton = findViewById(R.id.send_danmu_button);
+        danmuSendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.SEND_DANMU).putExtra("send_danmu", danmuSendEdittext.getText().toString()));
+                danmuSendEdittext.setText("");
+            }
+        });
+
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayShowHomeEnabled(true);
         actionBar.setDisplayUseLogoEnabled(true);

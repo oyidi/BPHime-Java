@@ -50,9 +50,25 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/room_setting_block"
-        >
-
+        android:layout_above="@id/send_danmu_layout">
     </android.support.v7.widget.RecyclerView>
-
+    <RelativeLayout
+        android:id="@+id/send_danmu_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true">
+        <EditText
+            android:id="@+id/send_danmu_context"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_toLeftOf="@id/send_danmu_button"/>
+        <Button
+            android:id="@+id/send_danmu_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:text="发送弹幕"/>
+    </RelativeLayout>
 
 </RelativeLayout>
