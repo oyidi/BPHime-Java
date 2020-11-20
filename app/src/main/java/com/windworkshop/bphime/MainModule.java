@@ -4,6 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.apkfuns.log2file.LogFileEngineFactory;
+import com.apkfuns.logutils.LogUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.zip.Inflater;
@@ -13,10 +16,18 @@ public class MainModule {
     static Context context;
     public static void setContext(Context context){
         MainModule.context = context;
-
+        LogUtils.getLogConfig()
+                .configAllowLog(true)
+                .configTagPrefix(logTag)
+                .configShowBorders(true);
+        LogUtils.getLog2FileConfig().configLog2FileEnable(true)
+                .configLog2FilePath(context.getCacheDir().getPath())
+                .configLog2FileNameFormat("%d{yyyyMMdd}.txt")
+                .configLogFileEngine(new LogFileEngineFactory(context));
     }
     public static void showLog(String log){
-        Log.i(logTag, log);
+        //Log.i(logTag, log);
+        LogUtils.d(log);
         /*
         if(context != null){
             Intent intent = new Intent(NotificationService.FOR_SERVICE);
@@ -24,7 +35,10 @@ public class MainModule {
             intent.putExtra("log", log);
             context.sendBroadcast(intent);
         }
-*/
+        */
+    }
+    public static void showError(Exception e) {
+        LogUtils.e(e);
     }
     /**
      * @param inputByte 待解压缩的字节数组

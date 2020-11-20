@@ -197,18 +197,21 @@ public class MainActivity extends AppCompatActivity {
         danmuSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String danmu = danmuSendEdittext.getText().toString();
-                if(!danmu.equals("")) {
-                    if(danmu.length() <= 30) {
-                        sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.SEND_DANMU).putExtra("send_danmu", danmuSendEdittext.getText().toString()));
-                        danmuSendEdittext.setText("");
+                if(!sp.getString("LIVE_BUVID", "").equals("")) {
+                    String danmu = danmuSendEdittext.getText().toString();
+                    if(!danmu.equals("")) {
+                        if(danmu.length() <= 30) {
+                            sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.SEND_DANMU).putExtra("send_danmu", danmuSendEdittext.getText().toString()));
+                            danmuSendEdittext.setText("");
+                        } else {
+                            Toast.makeText(getApplicationContext(), "弹幕超出30个字符长度", Toast.LENGTH_SHORT).show();
+                        }
                     } else {
-                        Toast.makeText(getApplicationContext(), "弹幕超出30个字符长度", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "弹幕为空", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    Toast.makeText(getApplicationContext(), "弹幕为空", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "尚未登录，需要在设置中登录账号才能发送弹幕", Toast.LENGTH_SHORT).show();
                 }
-
             }
         });
         drawerLayout = findViewById(R.id.main_drawer_layout);
@@ -218,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
                 if(menuItem.getItemId() == R.id.main_menu_histoty) {
-
+                    startActivity(new Intent(getApplicationContext(), HistoryDanmuActivity.class));
                 } else if(menuItem.getItemId() == R.id.main_menu_setting) {
                     startActivity(new Intent(getApplicationContext(), SettingActivity.class));
                 }

@@ -21,6 +21,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".SettingActivity"/>
+        <activity android:name=".HistoryDanmuActivity"/>
+        <activity android:name=".WebLoginActivity"/>
         <service
             android:name=".NotificationService"
             android:permission="android.permission.BIND_JOB_SERVICE"/>

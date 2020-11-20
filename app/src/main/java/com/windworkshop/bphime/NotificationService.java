@@ -73,10 +73,14 @@ public class NotificationService extends Service {
                         Toast.makeText(getApplicationContext(), "启动中...", Toast.LENGTH_SHORT).show();
                         Thread thread = new Thread(startConnectRunnable);
                         thread.start();
+                        // 启动状态记录
+                        sp.edit().putBoolean("hasStart", true).apply();
                     }
                 } else {
                     handler.post(stopConnection);
                     hasStart = false;
+                    // 启动状态记录
+                    sp.edit().putBoolean("hasStart", false).apply();
                 }
             } else if(action == STOP_CONNECTION) {
 
@@ -151,6 +155,15 @@ public class NotificationService extends Service {
 
         MainModule.showLog( "service onCreate");
         registerReceiver(clientPing, new IntentFilter(FOR_SERVICE));
+
+        // 服务被重新启动，按上次启动状态启动
+        boolean hasStarted = sp.getBoolean("hasStart", false);
+        if(hasStarted == true) {
+            roomId = sp.getString("roomid", "0");
+            Intent pongIntent = new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.START_CONNECTION).putExtra("roomId", roomId);
+            // 我 喊 我 自 己
+            sendBroadcast(pongIntent);
+        }
     }
 
     @Override
@@ -203,10 +216,15 @@ public class NotificationService extends Service {
                     Response response = httpClient.newCall(request).execute();
                     if (response.isSuccessful()) {
                         String responResult = response.body().string();
+                        JSONObject resultJson = new JSONObject(responResult);
+                        if(resultJson.getInt("code") != 0) {
+                            Toast.makeText(getApplicationContext(), "发送失败，原因：", Toast.LENGTH_SHORT).show();
+                        }
                         MainModule.showLog("send danmu result: "+responResult);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
+                    MainModule.showError(e);
                 }
                 sendingDanmu = null;
             }
@@ -268,8 +286,10 @@ public class NotificationService extends Service {
                 sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_FINISH));
             } catch (IOException e) {
                 e.printStackTrace();
+                MainModule.showError(e);
             } catch (JSONException e) {
                 e.printStackTrace();
+                MainModule.showError(e);
             }
 
         }
@@ -292,6 +312,7 @@ public class NotificationService extends Service {
                 reconnectCoount = 0;
             } catch (Exception e) {
                 e.printStackTrace();
+                MainModule.showError(e);
             }
             hasStart = true;
         }
@@ -357,6 +378,7 @@ public class NotificationService extends Service {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                    MainModule.showError(e);
                 }
             } else {
                 // 旧版协议读取方式，两种协议并存中
@@ -412,6 +434,7 @@ public class NotificationService extends Service {
         public void onError(Exception ex) {
             MainModule.showLog( "onError()");
             ex.printStackTrace();
+            MainModule.showError(ex);
             handler.post(stopConnection);
         }
     }
@@ -434,7 +457,7 @@ public class NotificationService extends Service {
             if(client.isClosed() == false){
                 LivePacket packet = LivePacket.createPacket(MainActivity.PacketType.CLIENT_HEARTBEAT);
                 client.send(packet.toBuffer());
-                MainModule.showLog( "heartBell");
+                //MainModule.showLog( "heartBell");
                 // 心跳包30秒一发
                 handler.postDelayed(heartBeatRunnable, 30000);
             } else { // 连接被关闭
