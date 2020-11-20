@@ -18,6 +18,8 @@ import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.widget.Toast;
 
+import com.apkfuns.logutils.LogUtils;
+
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.handshake.ServerHandshake;
@@ -171,6 +173,8 @@ public class NotificationService extends Service {
         super.onDestroy();
         MainModule.showLog( "service onDestroy");
         unregisterReceiver(clientPing);
+
+
     }
 
     @Override
@@ -179,11 +183,10 @@ public class NotificationService extends Service {
         return super.onUnbind(intent);
     }
 
-    @SuppressLint("WrongConstant")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         MainModule.showLog( "service onStartCommand");
-        flags = START_STICKY;
+        flags = START_FLAG_REDELIVERY;
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -218,7 +221,7 @@ public class NotificationService extends Service {
                         String responResult = response.body().string();
                         JSONObject resultJson = new JSONObject(responResult);
                         if(resultJson.getInt("code") != 0) {
-                            Toast.makeText(getApplicationContext(), "发送失败，原因：", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "发送失败，原因：" + resultJson.getString("msg"), Toast.LENGTH_SHORT).show();
                         }
                         MainModule.showLog("send danmu result: "+responResult);
                     }
@@ -402,6 +405,7 @@ public class NotificationService extends Service {
                         if(danmu.cmd.equals("DANMU_MSG")) {
                             builder.setContentText(danmu.userName+" : "+danmu.danmuText);
                             historyData.addHistory(roomId, danmu, new Date().getTime());
+                            LogUtils.i("收到弹幕：" + danmu.userName + ":" + danmu.danmuText);
                         } else if(danmu.cmd.equals("SEND_GIFT")) {
                             builder.setContentText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
                         }

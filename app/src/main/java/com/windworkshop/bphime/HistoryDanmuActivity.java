@@ -12,7 +12,7 @@ public class HistoryDanmuActivity extends AppCompatActivity {
 
     DanmuListAdapter adapter;
     RecyclerView listView;
-    ArrayList<DanmuItem> historyDanmue = new ArrayList<DanmuItem>();
+    ArrayList<DanmuItem> historyDanmu = new ArrayList<DanmuItem>();
     HistoryData historyData;
 
     int pastVisiblesItems, visibleItemCount, totalItemCount;
@@ -25,7 +25,7 @@ public class HistoryDanmuActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.history_danmu_activity);
-        adapter = new DanmuListAdapter(getApplicationContext(), historyDanmue);
+        adapter = new DanmuListAdapter(getApplicationContext(), historyDanmu);
         listView = findViewById(R.id.history_danmu_list);
         listView.setAdapter(adapter);
         linearLayoutManager = new LinearLayoutManager(getApplicationContext()){
@@ -65,10 +65,7 @@ public class HistoryDanmuActivity extends AppCompatActivity {
 
         ArrayList<DanmuItem> danmus = historyData.loadHistory(page);
         if(danmus.size() > 0){
-            historyDanmue.addAll(danmus);
-           // for(DanmuItem item : danmus){
-
-            //}
+            historyDanmu.addAll(danmus);
             adapter.notifyDataSetChanged();
         } else {
             isFinalPage = true;

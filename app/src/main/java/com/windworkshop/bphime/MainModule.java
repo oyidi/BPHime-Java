@@ -38,7 +38,7 @@ public class MainModule {
         */
     }
     public static void showError(Exception e) {
-        LogUtils.e(e);
+        LogUtils.e(e.getMessage());
     }
     /**
      * @param inputByte 待解压缩的字节数组
