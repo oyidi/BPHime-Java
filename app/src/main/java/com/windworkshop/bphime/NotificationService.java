@@ -67,7 +67,7 @@ public class NotificationService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             int action = intent.getIntExtra("action", 0);
-            //MainModule.showLog( "service handle:" + action);
+            //LogUtils.i( "service handle:" + action);
             if(action == START_CONNECTION) {
                 if(hasStart == false){
                     roomId = intent.getStringExtra("roomId");
@@ -111,7 +111,7 @@ public class NotificationService extends Service {
                   pongIntent.putExtra("hasStart", hasStart);
                   pongIntent.putExtra("danmu_items", danmuData);
                   sendBroadcast(pongIntent);
-                  MainModule.showLog( "service RELOAD_STATUE:" + hasStart);
+                  LogUtils.i( "service RELOAD_STATUE:" + hasStart);
             } else if(action == REFRESH_CONFIG) {
                 loadProfile();
             }
@@ -155,7 +155,7 @@ public class NotificationService extends Service {
             startForeground(1, builder.build());
         }
 
-        MainModule.showLog( "service onCreate");
+        LogUtils.i( "service onCreate");
         registerReceiver(clientPing, new IntentFilter(FOR_SERVICE));
 
         // 服务被重新启动，按上次启动状态启动
@@ -171,7 +171,7 @@ public class NotificationService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        MainModule.showLog( "service onDestroy");
+        LogUtils.i( "service onDestroy");
         unregisterReceiver(clientPing);
 
 
@@ -179,13 +179,13 @@ public class NotificationService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
-        MainModule.showLog( "service onUnbind");
+        LogUtils.i( "service onUnbind");
         return super.onUnbind(intent);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        MainModule.showLog( "service onStartCommand");
+        LogUtils.i( "service onStartCommand");
         flags = START_FLAG_REDELIVERY;
         return super.onStartCommand(intent, flags, startId);
     }
@@ -223,11 +223,11 @@ public class NotificationService extends Service {
                         if(resultJson.getInt("code") != 0) {
                             Toast.makeText(getApplicationContext(), "发送失败，原因：" + resultJson.getString("msg"), Toast.LENGTH_SHORT).show();
                         }
-                        MainModule.showLog("send danmu result: "+responResult);
+                        LogUtils.i("send danmu result: "+responResult);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    MainModule.showError(e);
+                    LogUtils.e(e.getMessage());
                 }
                 sendingDanmu = null;
             }
@@ -264,7 +264,7 @@ public class NotificationService extends Service {
                             int historyResultCode = historyResultJson.getInt("code");
                             if(historyResultCode == 0) {
                                 JSONObject dataJson = historyResultJson.getJSONObject("data");
-                                //MainModule.showLog(dataJson.toString());
+                                //LogUtils.i(dataJson.toString());
                                 JSONArray danmus = dataJson.getJSONArray("room");
                                 for(int i = 0;i < danmus.length();i++) {
                                     JSONObject danmu = danmus.getJSONObject(i);
@@ -289,10 +289,10 @@ public class NotificationService extends Service {
                 sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_FINISH));
             } catch (IOException e) {
                 e.printStackTrace();
-                MainModule.showError(e);
+                LogUtils.e(e.getMessage());
             } catch (JSONException e) {
                 e.printStackTrace();
-                MainModule.showError(e);
+                LogUtils.e(e.getMessage());
             }
 
         }
@@ -304,7 +304,7 @@ public class NotificationService extends Service {
 
         @Override
         public void onOpen(ServerHandshake handshakeData) {
-            MainModule.showLog( "onOpen() " + handshakeData.getHttpStatusMessage());
+            LogUtils.i( "onOpen() " + handshakeData.getHttpStatusMessage());
             // 启动的时候发送认证封包
             try {
                 String authString = "{\"uid\": 0,\"roomid\": " + roomId +",\"protover\": 1,\"platform\": \"web\",\"clientver\": \"1.8.5\"}";
@@ -315,7 +315,7 @@ public class NotificationService extends Service {
                 reconnectCoount = 0;
             } catch (Exception e) {
                 e.printStackTrace();
-                MainModule.showError(e);
+                LogUtils.e(e.getMessage());
             }
             hasStart = true;
         }
@@ -323,7 +323,7 @@ public class NotificationService extends Service {
         @Override
         public void onMessage(ByteBuffer buffer) {
             super.onMessage(buffer);
-            //MainModule.showLog( "onMessage(ByteBuffer)");
+            //LogUtils.i( "onMessage(ByteBuffer)");
 
             int packetLength = 0;
             int headerLength = 16; //  默认封包头为16长度
@@ -337,7 +337,7 @@ public class NotificationService extends Service {
             protocolVersion = (nums << 16) >> 16; // 反复横跳获得低两位（后16bit）控制版本号
             packetType = buffer.getInt(8); // 第三个8-11为封包类型
             sequence = buffer.getInt(12); // 第四个12-16为sequence
-            //MainModule.showLog( "packetData 包数据raw : " + new String(buffer.array()));
+            //LogUtils.i( "packetData 包数据raw : " + new String(buffer.array()));
             ArrayList<String> dataArray = new ArrayList<String>();
             if(protocolVersion == 2) {
                 try {
@@ -371,7 +371,7 @@ public class NotificationService extends Service {
                                     leftCount -= 1;
                                     if(leftCount == 0) {
                                         String jsonString = zipString.substring(startIndex, i+1);
-                                        //MainModule.showLog("find json:" + jsonString);
+                                        //LogUtils.i("find json:" + jsonString);
                                         dataArray.add(jsonString);
                                     }
                                 }
@@ -381,7 +381,7 @@ public class NotificationService extends Service {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                    MainModule.showError(e);
+                    LogUtils.e(e.getMessage());
                 }
             } else {
                 // 旧版协议读取方式，两种协议并存中
@@ -392,7 +392,7 @@ public class NotificationService extends Service {
                         dataString = dataString.substring(dataString.indexOf("{"), dataString.lastIndexOf("}")+1);
                         // 保存数据
                         dataArray.add(dataString);
-                       // MainModule.showLog( "packetData 包数据 : " + dataString);
+                       // LogUtils.i( "packetData 包数据 : " + dataString);
                     }
                 }
             }
@@ -425,20 +425,20 @@ public class NotificationService extends Service {
 
         @Override
         public void onMessage(String message) {
-            MainModule.showLog( "onMessage : "+ message);
+            LogUtils.i( "onMessage : "+ message);
         }
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
-            MainModule.showLog( "onClose() " + code + " " + reason);
+            LogUtils.i( "onClose() " + code + " " + reason);
             handler.post(stopConnection);
         }
 
         @Override
         public void onError(Exception ex) {
-            MainModule.showLog( "onError()");
+            LogUtils.i( "onError()");
             ex.printStackTrace();
-            MainModule.showError(ex);
+            LogUtils.e(ex.getMessage());
             handler.post(stopConnection);
         }
     }
@@ -461,12 +461,12 @@ public class NotificationService extends Service {
             if(client.isClosed() == false){
                 LivePacket packet = LivePacket.createPacket(MainActivity.PacketType.CLIENT_HEARTBEAT);
                 client.send(packet.toBuffer());
-                //MainModule.showLog( "heartBell");
+                //LogUtils.i( "heartBell");
                 // 心跳包30秒一发
                 handler.postDelayed(heartBeatRunnable, 30000);
             } else { // 连接被关闭
                 if(hasStart == true) { // 如果在运行中，则尝试重连
-                    MainModule.showLog( "HeartBeat try reconnect" + reconnectCoount);
+                    LogUtils.i( "HeartBeat try reconnect" + reconnectCoount);
                     reconnectCoount += 1;
                     if(reconnectCoount > 5) { // 重试5次不成功就完全停止
                         hasStart = false;

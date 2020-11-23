@@ -15,6 +15,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import com.apkfuns.logutils.LogUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,7 +45,7 @@ public class WebLoginActivity extends AppCompatActivity {
 
         loadingView = findViewById(R.id.web_login_loading_view);
 
-        MainModule.showLog("web login start");
+        LogUtils.i("web login start");
         web.loadUrl("https://passport.bilibili.com/login?gourl=https://live.bilibili.com/h5");
     }
     private class WebClient extends WebViewClient {
@@ -62,18 +64,18 @@ public class WebLoginActivity extends AppCompatActivity {
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
-            MainModule.showLog("load url Finished:" + url);
+            LogUtils.i("load url Finished:" + url);
             HashMap<String, String> cookies = checkCookie("https://bilibili.com/");
             if(cookies.containsKey("SESSDATA")) { // 已登录
                 if(cookies.containsKey("LIVE_BUVID")) { // 登录过后打开过直播页面有发弹幕权限
                     // 确认所需cookie都在
                     if(cookies.containsKey("bili_jct") && cookies.containsKey("DedeUserID") && cookies.containsKey("DedeUserID__ckMd5") && cookies.containsKey("sid")) {
-                        MainModule.showLog("sid=" + cookies.get("sid"));
-                        MainModule.showLog("DedeUserID=" + cookies.get("DedeUserID"));
-                        MainModule.showLog("DedeUserID__ckMd5=" + cookies.get("DedeUserID__ckMd5"));
-                        MainModule.showLog("SESSDATA=" + cookies.get("SESSDATA"));
-                        MainModule.showLog("bili_jct=" + cookies.get("bili_jct"));
-                        MainModule.showLog("LIVE_BUVID=" + cookies.get("LIVE_BUVID"));
+                        LogUtils.i("sid=" + cookies.get("sid"));
+                        LogUtils.i("DedeUserID=" + cookies.get("DedeUserID"));
+                        LogUtils.i("DedeUserID__ckMd5=" + cookies.get("DedeUserID__ckMd5"));
+                        LogUtils.i("SESSDATA=" + cookies.get("SESSDATA"));
+                        LogUtils.i("bili_jct=" + cookies.get("bili_jct"));
+                        LogUtils.i("LIVE_BUVID=" + cookies.get("LIVE_BUVID"));
 
                         sp.edit().putString("sid", cookies.get("sid"))
                                 .putString("DedeUserID", cookies.get("DedeUserID"))
@@ -98,8 +100,8 @@ public class WebLoginActivity extends AppCompatActivity {
     private HashMap<String, String> checkCookie(String site) {
         CookieManager cookieManager = CookieManager.getInstance();
         String cookieRawString = cookieManager.getCookie(site);
-        MainModule.showLog("site:" + site);
-        MainModule.showLog("cookies:" + cookieRawString);
+        LogUtils.i("site:" + site);
+        LogUtils.i("cookies:" + cookieRawString);
         HashMap<String, String> cookies = new HashMap<>();
         if(cookieRawString != null){
             String[] cookiesString = cookieRawString.split("; ");
@@ -110,7 +112,7 @@ public class WebLoginActivity extends AppCompatActivity {
                 cookies.put(cookieKey, cookieValue);
             }
             for(Map.Entry<String, String> data :cookies.entrySet()) {
-                MainModule.showLog("k:" + data.getKey() + " v:" + data.getValue());
+                LogUtils.i("k:" + data.getKey() + " v:" + data.getValue());
             }
         }
         return cookies;

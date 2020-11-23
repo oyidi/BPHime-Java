@@ -1,5 +1,7 @@
 package com.windworkshop.bphime;
 
+import com.apkfuns.logutils.LogUtils;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -36,7 +38,7 @@ public class LivePacket {
         packetType = buffer.getInt(8); // 第三个8-11为封包类型
         sequence = buffer.getInt(12); // 第四个12-16为sequence
 
-        MainModule.showLog( "packetData 包数据raw : " + new String(buffer.array()));
+        LogUtils.i( "packetData 包数据raw : " + new String(buffer.array()));
 
         if(protocolVersion == 2) {
             byte[] rawByteData = buffer.array();
@@ -65,7 +67,7 @@ public class LivePacket {
                             leftCount -= 1;
                             if(leftCount == 0) {
                                 String jsonString = zipString.substring(startIndex, i+1);
-                                MainModule.showLog("find json:" + jsonString);
+                                LogUtils.i("find json:" + jsonString);
                                 dataArray.add(new JSONObject(jsonString));
                             }
                         }
@@ -84,7 +86,7 @@ public class LivePacket {
                     // 保存数据
                     packetData = dataString;
                 }
-                MainModule.showLog( "packetData 包数据 : " + packetData);
+                LogUtils.i( "packetData 包数据 : " + packetData);
             }
         }
     }

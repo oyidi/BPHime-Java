@@ -49,7 +49,6 @@ public class HistoryDanmuActivity extends AppCompatActivity {
                             if(isFinalPage == false) {
                                 loading = false;
                                 page += 1;
-                                MainModule.showLog("Last Item Wow !");
                                 loadHistoryDanmu();
                             }
                         }

@@ -28,6 +28,8 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.apkfuns.logutils.LogUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            //MainModule.showLog( "client handle:"+ msg.what);
+            //LogUtils.i( "client handle:"+ msg.what);
             if(msg.what == NotificationService.START_CONNECTION_FINISH) {
 
             } else if(msg.what == NotificationService.START_CONNECTION_SUCCESS) {
@@ -73,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             int action = intent.getIntExtra("action", 0);
-           // MainModule.showLog( "client handle:" + action);
+           // LogUtils.i( "client handle:" + action);
             if(action == NotificationService.START_CONNECTION_FINISH) {
 
             } else if(action == NotificationService.START_CONNECTION_SUCCESS) { // 接收到新弹幕
@@ -109,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
             } else if(action == NotificationService.RELOAD_STATUE) { // 重新加载弹幕内容
                 if(hasloaded == false) { // 只加载一次，Activity未被干掉的时候不重复加载
                     boolean hasStart = intent.getBooleanExtra("hasStart", false);
-                    MainModule.showLog( "client RELOAD_STATUE:" + hasStart);
+                    LogUtils.i( "client RELOAD_STATUE:" + hasStart);
                     if(hasStart == true) { // 设置按钮状态
                         startButton.setText(R.string.stop);
                         startButton.setEnabled(true);
@@ -247,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        MainModule.showLog( "onResume");
+        LogUtils.i( "onResume");
         if(!isServiceRun(getApplicationContext(), "com.windworkshop.bphime.NotificationService")) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 getApplicationContext().startForegroundService(new Intent(this, NotificationService.class));
@@ -262,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        MainModule.showLog( "onPause");
+        LogUtils.i( "onPause");
         unregisterReceiver(serverPing);
     }
 
