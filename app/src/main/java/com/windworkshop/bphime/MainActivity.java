@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
@@ -29,6 +30,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.apkfuns.logutils.LogUtils;
+import com.baidu.mobstat.StatService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
                 } else { // 普通弹幕
                     DanmuItem danmu = intent.getParcelableExtra("danmu_item");
                     if(danmu.cmd != null) {
-                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
+                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log") || danmu.cmd.equals("INTERACT_WORD")) {
                             adapter.addDanmu(danmu);
                             handler.post(updateDanmuListRunnable);
                         }
@@ -123,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
                     ArrayList<DanmuItem> danmuItems = intent.getParcelableArrayListExtra("danmu_items");
                     for(DanmuItem danmu : danmuItems){
                         if(danmu.cmd != null) {
-                            if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log")) {
+                            if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log") || danmu.cmd.equals("INTERACT_WORD")) {
                                 adapter.addDanmu(danmu);
                             }
                         }
@@ -154,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        StatService.setAuthorizedState(getApplicationContext(), false);
         sp = getSharedPreferences("config",Context.MODE_PRIVATE);
         adapter = new DanmuListAdapter(getApplicationContext(), mainDanmue);
         listView = findViewById(R.id.danmu_list);
@@ -179,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String roomId = roomIdEdittext.getText().toString();
                 Intent pongIntent = new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.START_CONNECTION).putExtra("roomId", roomId);
-                sendBroadcast(pongIntent);
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(pongIntent);
                 startButton.setEnabled(false);
                 sp.edit().putString("roomid", roomId).commit();
             }
@@ -190,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 sp.edit().putBoolean("vibrate", isChecked).commit();
-                sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.REFRESH_CONFIG));
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.REFRESH_CONFIG));
             }
         });
 
@@ -203,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
                     String danmu = danmuSendEdittext.getText().toString();
                     if(!danmu.equals("")) {
                         if(danmu.length() <= 30) {
-                            sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.SEND_DANMU).putExtra("send_danmu", danmuSendEdittext.getText().toString()));
+                            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.SEND_DANMU).putExtra("send_danmu", danmuSendEdittext.getText().toString()));
                             danmuSendEdittext.setText("");
                         } else {
                             Toast.makeText(getApplicationContext(), "弹幕超出30个字符长度", Toast.LENGTH_SHORT).show();
@@ -238,6 +240,7 @@ public class MainActivity extends AppCompatActivity {
         ActionBarDrawerToggle drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.navigation_drawer_open,R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
+
     }
 
     @Override
@@ -257,15 +260,15 @@ public class MainActivity extends AppCompatActivity {
                 getApplicationContext().startService(new Intent(this, NotificationService.class));
             }
         }
-        registerReceiver(serverPing, new IntentFilter(NotificationService.FOR_CLIENT));
-        sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.RELOAD_STATUE));
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(serverPing, new IntentFilter(NotificationService.FOR_CLIENT));
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.RELOAD_STATUE));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         LogUtils.i( "onPause");
-        unregisterReceiver(serverPing);
+        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(serverPing);
     }
 
     @Override
@@ -293,6 +296,8 @@ public class MainActivity extends AppCompatActivity {
     Runnable updateDanmuListRunnable = new Runnable() {
         @Override
         public void run() {
+            adapter.setShowSendingTime(sp.getBoolean("is_show_send_time",false));
+            adapter.setShowMemberIn(sp.getBoolean("is_show_member_in",false));
             adapter.notifyDataSetChanged();
             listView.scrollToPosition(adapter.getItemCount()-1);
         }

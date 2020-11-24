@@ -17,7 +17,9 @@ public class DanmuItem implements Parcelable {
     String giftUserName;
     int giftNum;
     String welcomeName;
-    long reciveTime;
+    long receiveTime;
+    String receiveTimeString;
+    long uid;
     public DanmuItem(String cmd, String log, String time) {
         this.cmd = cmd;
         this.danmuText = log;
@@ -27,7 +29,7 @@ public class DanmuItem implements Parcelable {
         this.cmd = "DANMU_MSG";
         this.userName = username;
         this.danmuText = text;
-        this.reciveTime = time;
+        this.receiveTime = time;
     }
     public DanmuItem(String rawdata) {
         danmuData = rawdata;
@@ -38,13 +40,25 @@ public class DanmuItem implements Parcelable {
             cmd = json.getString("cmd");
             if(cmd.equals("DANMU_MSG")){ // 正常弹幕
                 JSONArray info = json.getJSONArray("info");
+                uid = info.getLong(0);
                 danmuText = info.getString(1);
                 userName = info.getJSONArray(2).getString(1);
+                receiveTime = info.getJSONObject(9).getLong("ts")*1000;
+                receiveTimeString = NotificationService.sdf.format(receiveTime);
             } else if(cmd.equals("SEND_GIFT")) { // 赠送礼物
                 JSONObject data = json.getJSONObject("data");
+                uid = data.getLong("uid");
                 giftName = data.getString("giftName");
                 giftNum = data.getInt("num");
                 giftUserName = data.getString("uname");
+                receiveTime = data.getLong("timestamp")*1000;
+                receiveTimeString = NotificationService.sdf.format(receiveTime);
+            } else if(cmd.equals("INTERACT_WORD")) { // 一般路过入场
+                JSONObject data = json.getJSONObject("data");
+                uid = data.getLong("uid");
+                userName = data.getString("uname");
+                receiveTime = data.getLong("timestamp")*1000;
+                receiveTimeString = NotificationService.sdf.format(receiveTime);
             } else if(cmd.equals("WELCOME")) { // 大佬入场
                 JSONObject data = json.getJSONObject("data");
                 welcomeName = data.getString("uname");
@@ -67,7 +81,9 @@ public class DanmuItem implements Parcelable {
         giftUserName = in.readString();
         giftNum = in.readInt();
         welcomeName = in.readString();
-        reciveTime = in.readLong();
+        receiveTime = in.readLong();
+        receiveTimeString = in.readString();
+        uid = in.readLong();
     }
 
     public static final Creator<DanmuItem> CREATOR = new Creator<DanmuItem>() {
@@ -97,6 +113,8 @@ public class DanmuItem implements Parcelable {
         parcel.writeString(giftUserName);
         parcel.writeInt(giftNum);
         parcel.writeString(welcomeName);
-        parcel.writeLong(reciveTime);
+        parcel.writeLong(receiveTime);
+        parcel.writeString(receiveTimeString);
+        parcel.writeLong(uid);
     }
 }
