@@ -13,7 +13,7 @@ public class HistoryDataBaseOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        sqLiteDatabase.execSQL("create table if not exists danmu(id int primary key, room_id text, username text, context text, revice_time int)");
+        sqLiteDatabase.execSQL("create table if not exists danmu(id int primary key, room_id text, username text, uid int, context text, revice_time int)");
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.windworkshop.bphime;
 
-import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -13,9 +12,9 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.widget.Toast;
 
 import com.apkfuns.logutils.LogUtils;
@@ -54,7 +53,7 @@ public class NotificationService extends Service {
     SharedPreferences sp;
     boolean vibrateNotification = false;
     Vibrator vibrator;
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     HistoryData historyData;
 
     ArrayList<DanmuItem> danmuData = new ArrayList<DanmuItem>();
@@ -104,13 +103,13 @@ public class NotificationService extends Service {
                 sendIntent.putExtra("isLog", true);
                 sendIntent.putExtra("log", logDanmu);
                 danmuData.add(logDanmu);
-                sendBroadcast(sendIntent);
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(sendIntent);
             } else if(action == RELOAD_STATUE) { // Activity的重载数据请求
                   Intent pongIntent = new Intent(FOR_CLIENT);
                   pongIntent.putExtra("action", RELOAD_STATUE);
                   pongIntent.putExtra("hasStart", hasStart);
                   pongIntent.putExtra("danmu_items", danmuData);
-                  sendBroadcast(pongIntent);
+                  LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(pongIntent);
                   LogUtils.i( "service RELOAD_STATUE:" + hasStart);
             } else if(action == REFRESH_CONFIG) {
                 loadProfile();
@@ -156,7 +155,7 @@ public class NotificationService extends Service {
         }
 
         LogUtils.i( "service onCreate");
-        registerReceiver(clientPing, new IntentFilter(FOR_SERVICE));
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(clientPing, new IntentFilter(FOR_SERVICE));
 
         // 服务被重新启动，按上次启动状态启动
         boolean hasStarted = sp.getBoolean("hasStart", false);
@@ -164,7 +163,7 @@ public class NotificationService extends Service {
             roomId = sp.getString("roomid", "0");
             Intent pongIntent = new Intent(NotificationService.FOR_SERVICE).putExtra("action", NotificationService.START_CONNECTION).putExtra("roomId", roomId);
             // 我 喊 我 自 己
-            sendBroadcast(pongIntent);
+            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(pongIntent);
         }
     }
 
@@ -172,7 +171,7 @@ public class NotificationService extends Service {
     public void onDestroy() {
         super.onDestroy();
         LogUtils.i( "service onDestroy");
-        unregisterReceiver(clientPing);
+        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(clientPing);
 
 
     }
@@ -269,13 +268,15 @@ public class NotificationService extends Service {
                                 for(int i = 0;i < danmus.length();i++) {
                                     JSONObject danmu = danmus.getJSONObject(i);
                                     DanmuItem danmuItem = new DanmuItem("DANMU_MSG", danmu.getString("text"), danmu.getString("nickname"));
+                                    danmuItem.receiveTime = danmu.getJSONObject("check_info").getLong("ts")*1000;
+                                    danmuItem.receiveTimeString = sdf.format(danmuItem.receiveTime);
                                     danmuList.add(danmuItem); // 添加到返回Activitry弹幕列表
                                     danmuData.add(danmuItem); // 添加到总弹幕列表
                                 }
                             }
                             Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", LOAD_REMOTE_HISTORY);
                             pongIntent.putExtra("history_danmus", danmuList);
-                            sendBroadcast(pongIntent);
+                            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(pongIntent);
                         }
                         // WebSocket，启动
                         client = new JWebSocketClient(URI.create("wss://broadcastlv.chat.bilibili.com:2245/sub"));
@@ -286,7 +287,7 @@ public class NotificationService extends Service {
                         Toast.makeText(getApplicationContext(), "启动错误："+resultJson.getString("message"), Toast.LENGTH_SHORT).show();
                     }
                 }
-                sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_FINISH));
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_FINISH));
             } catch (IOException e) {
                 e.printStackTrace();
                 LogUtils.e(e.getMessage());
@@ -311,7 +312,7 @@ public class NotificationService extends Service {
                 LivePacket packet = LivePacket.createAuthPacket(authString);
                 ByteBuffer bf = packet.toBuffer();
                 this.send(bf);
-                sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_SUCCESS));
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", START_CONNECTION_SUCCESS));
                 reconnectCoount = 0;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -347,14 +348,16 @@ public class NotificationService extends Service {
                     for(int i = 0;i < realByteData.length;i++){
                         realByteData[i] = rawByteData[16+ i];
                     }
-                    String zipString = new String(MainModule.uncompress(realByteData));
+                    String unzipString = new String(MainModule.uncompress(realByteData));
+                    LogUtils.i(unzipString);
+
                     // 解压之后的数据似乎还包含着原有封包的头，长度有差异，并且将多个包拼接在一起，还会出现包数据不全的情况，手动截取包中多个json
                     // 估计是为了减轻服务器压力才这么设计的
                     int leftCount = 0;
                     int startIndex = 0;
                     boolean inString = false;
-                    for(int i = 0;i < zipString.length();i++) {
-                        char c = zipString.charAt(i);
+                    for(int i = 0;i < unzipString.length();i++) {
+                        char c = unzipString.charAt(i);
                         if(c == '"') {
                             inString = !inString;
                         }
@@ -370,7 +373,7 @@ public class NotificationService extends Service {
                                 } else if(c == '}') {
                                     leftCount -= 1;
                                     if(leftCount == 0) {
-                                        String jsonString = zipString.substring(startIndex, i+1);
+                                        String jsonString = unzipString.substring(startIndex, i+1);
                                         //LogUtils.i("find json:" + jsonString);
                                         dataArray.add(jsonString);
                                     }
@@ -419,7 +422,7 @@ public class NotificationService extends Service {
                 danmuData.add(danmu);
                 Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", RECIVE_DANMU);
                 pongIntent.putExtra("danmu_item", danmu);
-                sendBroadcast(pongIntent);
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(pongIntent);
             }
         }
 
@@ -499,7 +502,7 @@ public class NotificationService extends Service {
                     client.close();
                 }
                 handler.removeCallbacks(heartBeatRunnable);
-                sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", STOP_CONNECTION));
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(new Intent(FOR_CLIENT).putExtra("action", STOP_CONNECTION));
                 hasStart = false;
                 Toast.makeText(getApplicationContext(), "已停止", Toast.LENGTH_SHORT).show();
             }

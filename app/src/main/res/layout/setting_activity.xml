@@ -50,4 +50,31 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toBottomOf="@id/setting_user_web_login_clear_label"
         android:text="清除登录信息"/>
+
+    <TextView
+        android:text="弹幕显示设置"
+        android:id="@+id/setting_showing_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/setting_user_web_login_clear_button"
+        />
+
+    <CheckBox
+        android:id="@+id/setting_show_send_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="显示发送时间"
+        app:layout_constraintTop_toBottomOf="@+id/setting_showing_text"
+        app:layout_constraintLeft_toLeftOf="parent"/>
+
+    <CheckBox
+        android:id="@+id/setting_show_member_in"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="显示观众入场"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toRightOf="@+id/setting_show_send_time"
+        app:layout_constraintTop_toTopOf="@+id/setting_show_send_time"
+        />
 </android.support.constraint.ConstraintLayout>

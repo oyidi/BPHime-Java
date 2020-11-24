@@ -13,17 +13,37 @@ import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.Toast;
 
 public class SettingActivity extends AppCompatActivity {
     SharedPreferences sp;
     Toolbar toolbar;
+    CheckBox showSendTime, showMemberIn;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.setting_activity);
         sp = getSharedPreferences("config", Context.MODE_PRIVATE);
 
+        showSendTime = findViewById(R.id.setting_show_send_time);
+        showSendTime.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                sp.edit().putBoolean("is_show_send_time", b).apply();
+            }
+        });
+        showSendTime.setChecked(sp.getBoolean("is_show_send_time", false));
+
+        showMemberIn = findViewById(R.id.setting_show_member_in);
+        showMemberIn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                sp.edit().putBoolean("is_show_member_in", b).apply();
+            }
+        });
+        showMemberIn.setChecked(sp.getBoolean("is_show_member_in", false));
         toolbar = (Toolbar) findViewById(R.id.main_normal_toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
