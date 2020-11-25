@@ -94,7 +94,13 @@ public class MainActivity extends AppCompatActivity {
                     DanmuItem danmu = intent.getParcelableExtra("danmu_item");
                     if(danmu.cmd != null) {
                         if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log") || danmu.cmd.equals("INTERACT_WORD")) {
-                            adapter.addDanmu(danmu);
+                            if(danmu.cmd.equals("INTERACT_WORD")) {
+                                if(isMemberIn) {
+                                    adapter.addDanmu(danmu);
+                                }
+                            } else {
+                                adapter.addDanmu(danmu);
+                            }
                             handler.post(updateDanmuListRunnable);
                         }
                     }
@@ -122,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     // 恢复弹幕到列表
                     adapter.clear();
-                    boolean isMemberIn = sp.getBoolean("is_show_member_in",false);
+                    isMemberIn = sp.getBoolean("is_show_member_in",false);
                     ArrayList<DanmuItem> danmuItems = intent.getParcelableArrayListExtra("danmu_items");
                     for(DanmuItem danmu : danmuItems){
                         if(danmu.cmd != null) {
@@ -157,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
 
     SharedPreferences sp;
     boolean hasloaded = false; // 初次载入
+    boolean isMemberIn = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -302,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             adapter.setShowSendingTime(sp.getBoolean("is_show_send_time",false));
-            adapter.setShowMemberIn(sp.getBoolean("is_show_member_in",false));
+            adapter.setShowMemberIn(isMemberIn);
             adapter.notifyDataSetChanged();
             listView.scrollToPosition(adapter.getItemCount()-1);
         }

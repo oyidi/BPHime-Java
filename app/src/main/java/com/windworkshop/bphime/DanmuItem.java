@@ -25,11 +25,19 @@ public class DanmuItem implements Parcelable {
         this.danmuText = log;
         this.userName = time;
     }
+
+    /**
+     * 数据库加载用
+     * @param username
+     * @param text
+     * @param time
+     */
     public DanmuItem(String username, String text, long time) {
         this.cmd = "DANMU_MSG";
         this.userName = username;
         this.danmuText = text;
         this.receiveTime = time;
+        this.receiveTimeString = NotificationService.sdf.format(receiveTime);
     }
     public DanmuItem(String rawdata) {
         danmuData = rawdata;
@@ -45,7 +53,7 @@ public class DanmuItem implements Parcelable {
                     danmuText = info.getString(1);
                     userName = info.getJSONArray(2).getString(1);
                     receiveTime = info.getJSONObject(9).getLong("ts")*1000;
-                    receiveTimeString = NotificationService.sdf.format(receiveTime);
+                    receiveTimeString = NotificationService.sdfmini.format(receiveTime);
                 } else if(cmd.equals("SEND_GIFT")) { // 赠送礼物
                     JSONObject data = json.getJSONObject("data");
                     uid = data.getLong("uid");
