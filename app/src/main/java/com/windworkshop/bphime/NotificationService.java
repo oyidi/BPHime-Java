@@ -54,6 +54,7 @@ public class NotificationService extends Service {
     boolean vibrateNotification = false;
     Vibrator vibrator;
     public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static SimpleDateFormat sdfmini = new SimpleDateFormat("HH:mm:ss");
     HistoryData historyData;
 
     ArrayList<DanmuItem> danmuData = new ArrayList<DanmuItem>();
@@ -268,10 +269,13 @@ public class NotificationService extends Service {
                                 for(int i = 0;i < danmus.length();i++) {
                                     JSONObject danmu = danmus.getJSONObject(i);
                                     DanmuItem danmuItem = new DanmuItem("DANMU_MSG", danmu.getString("text"), danmu.getString("nickname"));
-                                    danmuItem.receiveTime = danmu.getJSONObject("check_info").getLong("ts")*1000;
-                                    danmuItem.receiveTimeString = sdf.format(danmuItem.receiveTime);
-                                    danmuList.add(danmuItem); // 添加到返回Activitry弹幕列表
-                                    danmuData.add(danmuItem); // 添加到总弹幕列表
+                                    if(!danmuItem.cmd.equals("EMPTY")) { // 检查是否为有效弹幕
+                                        danmuItem.receiveTime = danmu.getJSONObject("check_info").getLong("ts")*1000;
+                                        danmuItem.receiveTimeString = sdfmini.format(danmuItem.receiveTime);
+                                        danmuList.add(danmuItem); // 添加到返回Activitry弹幕列表
+                                        danmuData.add(danmuItem); // 添加到总弹幕列表
+                                    }
+
                                 }
                             }
                             Intent pongIntent = new Intent(FOR_CLIENT).putExtra("action", LOAD_REMOTE_HISTORY);

@@ -111,7 +111,6 @@ public class MainActivity extends AppCompatActivity {
                 handler.post(updateDanmuListRunnable);
 
             } else if(action == NotificationService.RELOAD_STATUE) { // 重新加载弹幕内容
-                if(hasloaded == false) { // 只加载一次，Activity未被干掉的时候不重复加载
                     boolean hasStart = intent.getBooleanExtra("hasStart", false);
                     LogUtils.i( "client RELOAD_STATUE:" + hasStart);
                     if(hasStart == true) { // 设置按钮状态
@@ -122,17 +121,23 @@ public class MainActivity extends AppCompatActivity {
                         startButton.setEnabled(true);
                     }
                     // 恢复弹幕到列表
+                    adapter.clear();
+                    boolean isMemberIn = sp.getBoolean("is_show_member_in",false);
                     ArrayList<DanmuItem> danmuItems = intent.getParcelableArrayListExtra("danmu_items");
                     for(DanmuItem danmu : danmuItems){
                         if(danmu.cmd != null) {
                             if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log") || danmu.cmd.equals("INTERACT_WORD")) {
-                                adapter.addDanmu(danmu);
+                                if(danmu.cmd.equals("INTERACT_WORD")) {
+                                    if(isMemberIn) {
+                                        adapter.addDanmu(danmu);
+                                    }
+                                } else {
+                                    adapter.addDanmu(danmu);
+                                }
                             }
                         }
                     }
                     handler.post(updateDanmuListRunnable);
-                    hasloaded = true;
-                }
             }
         }
     };

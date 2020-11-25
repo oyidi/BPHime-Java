@@ -36,39 +36,45 @@ public class DanmuItem implements Parcelable {
         // 初始化弹幕并进行分类
         try {
             JSONObject json = new JSONObject(danmuData);
-            // 取得弹幕类型
-            cmd = json.getString("cmd");
-            if(cmd.equals("DANMU_MSG")){ // 正常弹幕
-                JSONArray info = json.getJSONArray("info");
-                uid = info.getLong(0);
-                danmuText = info.getString(1);
-                userName = info.getJSONArray(2).getString(1);
-                receiveTime = info.getJSONObject(9).getLong("ts")*1000;
-                receiveTimeString = NotificationService.sdf.format(receiveTime);
-            } else if(cmd.equals("SEND_GIFT")) { // 赠送礼物
-                JSONObject data = json.getJSONObject("data");
-                uid = data.getLong("uid");
-                giftName = data.getString("giftName");
-                giftNum = data.getInt("num");
-                giftUserName = data.getString("uname");
-                receiveTime = data.getLong("timestamp")*1000;
-                receiveTimeString = NotificationService.sdf.format(receiveTime);
-            } else if(cmd.equals("INTERACT_WORD")) { // 一般路过入场
-                JSONObject data = json.getJSONObject("data");
-                uid = data.getLong("uid");
-                userName = data.getString("uname");
-                receiveTime = data.getLong("timestamp")*1000;
-                receiveTimeString = NotificationService.sdf.format(receiveTime);
-            } else if(cmd.equals("WELCOME")) { // 大佬入场
-                JSONObject data = json.getJSONObject("data");
-                welcomeName = data.getString("uname");
-            } else if(cmd.equals("log")) {
-                danmuText = json.getString("log");
-                userName = json.getString("time");
+            if(json.has("cmd")) {
+                // 取得弹幕类型
+                cmd = json.getString("cmd");
+                if(cmd.equals("DANMU_MSG")){ // 正常弹幕
+                    JSONArray info = json.getJSONArray("info");
+                    uid = info.getJSONArray(2).getLong(0);
+                    danmuText = info.getString(1);
+                    userName = info.getJSONArray(2).getString(1);
+                    receiveTime = info.getJSONObject(9).getLong("ts")*1000;
+                    receiveTimeString = NotificationService.sdf.format(receiveTime);
+                } else if(cmd.equals("SEND_GIFT")) { // 赠送礼物
+                    JSONObject data = json.getJSONObject("data");
+                    uid = data.getLong("uid");
+                    giftName = data.getString("giftName");
+                    giftNum = data.getInt("num");
+                    giftUserName = data.getString("uname");
+                    receiveTime = data.getLong("timestamp")*1000;
+                    receiveTimeString = NotificationService.sdfmini.format(receiveTime);
+                } else if(cmd.equals("INTERACT_WORD")) { // 一般路过入场
+                    JSONObject data = json.getJSONObject("data");
+                    uid = data.getLong("uid");
+                    userName = data.getString("uname");
+                    receiveTime = data.getLong("timestamp")*1000;
+                    receiveTimeString = NotificationService.sdfmini.format(receiveTime);
+                } else if(cmd.equals("WELCOME")) { // 大佬入场
+                    JSONObject data = json.getJSONObject("data");
+                    welcomeName = data.getString("uname");
+                } else if(cmd.equals("log")) {
+                    danmuText = json.getString("log");
+                    userName = json.getString("time");
+                }
+            } else {
+                // 无法获知弹幕类型，返回空弹幕用于后续检测
+                cmd = "EMPTY";
             }
-
         } catch (JSONException e) {
-            //e.printStackTrace();
+            e.printStackTrace();
+            // 错误的情况下返回空弹幕用于后续检测
+            cmd = "EMPTY";
         }
     }
 

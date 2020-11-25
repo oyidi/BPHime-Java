@@ -4,7 +4,8 @@
     <color name="colorPrimaryDark">#1499d2</color>
     <color name="colorAccent">#c7c7c7</color>
     <color name="danmuUsername">#42b7e8</color>
+    <color name="danmuContext">#959ba4</color>
     <color name="showTime">#666666</color>
-    <color name="showGift">#41EC2E</color>
-    <color name="showInteract">#FFEB3B</color>
+    <color name="showGift">#3BDF29</color>
+    <color name="showInteract">#FF8593</color>
 </resources>

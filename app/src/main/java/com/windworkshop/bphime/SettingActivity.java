@@ -44,10 +44,11 @@ public class SettingActivity extends AppCompatActivity {
             }
         });
         showMemberIn.setChecked(sp.getBoolean("is_show_member_in", false));
-        toolbar = (Toolbar) findViewById(R.id.main_normal_toolbar);
+        toolbar = findViewById(R.id.main_normal_toolbar);
+        toolbar.setTitle("设置");
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        toolbar.setTitle("设置");
+
 
         Button webLoginButton = findViewById(R.id.setting_user_web_login_button);
         webLoginButton.setOnClickListener(new View.OnClickListener() {
