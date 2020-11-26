@@ -1,6 +1,8 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.object;
 
 import com.apkfuns.logutils.LogUtils;
+import com.windworkshop.bphime.MainModule;
+import com.windworkshop.bphime.activity.MainActivity;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -91,14 +93,14 @@ public class LivePacket {
         }
     }
     // 创建封包基础方法
-    public static LivePacket createPacket(MainActivity.PacketType type) {
+    public static LivePacket createPacket(PacketType type) {
         LivePacket packet = new LivePacket();
         packet.packetType = type.id;
         return packet;
     }
     // 创建认证包
     public static LivePacket createAuthPacket(String dataJson) {
-        LivePacket packet = createPacket(MainActivity.PacketType.JOIN_ROOM); // 设置封包类型
+        LivePacket packet = createPacket(PacketType.JOIN_ROOM); // 设置封包类型
         packet.packetData = dataJson;
         return packet;
     }

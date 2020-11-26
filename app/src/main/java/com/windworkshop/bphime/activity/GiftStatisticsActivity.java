@@ -1,4 +1,4 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.activity;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

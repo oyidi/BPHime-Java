@@ -1,4 +1,4 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.activity;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -12,7 +12,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.apkfuns.logutils.LogUtils;
+import com.windworkshop.bphime.object.DanmuItem;
+import com.windworkshop.bphime.R;
 
 import java.util.ArrayList;
 
@@ -48,44 +49,44 @@ public class DanmuListAdapter extends RecyclerView.Adapter<DanmuListAdapter.Danm
         danmuViewHolder.itemView.setTag(i);
         DanmuItem danmu = danmus.get(i);
         SpannableString snString;
-        if(danmu.cmd.equals("DANMU_MSG")){
+        if(danmu.getCmd().equals("DANMU_MSG")){
             if(isShowSendingTime) {
-                String receiveTimeString = "["+danmu.receiveTimeString + "] ";
-                snString = new SpannableString( receiveTimeString + danmu.userName+" : "+danmu.danmuText);
+                String receiveTimeString = "["+danmu.getReceiveTimeString() + "] ";
+                snString = new SpannableString( receiveTimeString + danmu.getUserName()+" : "+danmu.getDanmuText());
                 snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showTime)),0, receiveTimeString.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),receiveTimeString.length(), receiveTimeString.length() + danmu.userName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),receiveTimeString.length(), receiveTimeString.length() + danmu.getUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             } else {
-                snString = new SpannableString(danmu.userName+" : "+danmu.danmuText);
-                snString.setSpan(new ForegroundColorSpan(Color.parseColor("#42b7e8")),0, danmu.userName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                snString = new SpannableString(danmu.getUserName()+" : "+danmu.getDanmuText());
+                snString.setSpan(new ForegroundColorSpan(Color.parseColor("#42b7e8")),0, danmu.getUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             }
             danmuViewHolder.danmuTextView.setText(snString);
-        } else if(danmu.cmd.equals("SEND_GIFT")){
+        } else if(danmu.getCmd().equals("SEND_GIFT")){
             if(isShowSendingTime) {
-                String receiveTimeString = "[" + danmu.receiveTimeString + "] ";
-                snString = new SpannableString(receiveTimeString + danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
+                String receiveTimeString = "[" + danmu.getReceiveTimeString() + "] ";
+                snString = new SpannableString(receiveTimeString + danmu.getGiftUserName() + " 赠送 " + danmu.getGiftNum() + " 个" + danmu.getGiftName());
                 snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showTime)),0, receiveTimeString.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),receiveTimeString.length(), receiveTimeString.length() + danmu.giftUserName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),receiveTimeString.length(), receiveTimeString.length() + danmu.getGiftUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             } else {
-                snString = new SpannableString(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
-                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),0, danmu.giftUserName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                snString = new SpannableString(danmu.getGiftUserName() + " 赠送 " + danmu.getGiftNum() + " 个" + danmu.getGiftName());
+                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),0, danmu.getGiftUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             }
             danmuViewHolder.danmuTextView.setText(snString);
-        } else if(danmu.cmd.equals("INTERACT_WORD")){
+        } else if(danmu.getCmd().equals("INTERACT_WORD")){
             if(isShowMemberIn) {
                 if(isShowSendingTime) {
-                    String receiveTimeString = "[" + danmu.receiveTimeString + "] ";
-                    snString = new SpannableString(receiveTimeString + danmu.userName + "  进入直播间");
+                    String receiveTimeString = "[" + danmu.getReceiveTimeString() + "] ";
+                    snString = new SpannableString(receiveTimeString + danmu.getUserName() + "  进入直播间");
                     snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showTime)),0, receiveTimeString.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                    snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showInteract)),receiveTimeString.length(), receiveTimeString.length() + danmu.userName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showInteract)),receiveTimeString.length(), receiveTimeString.length() + danmu.getUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                 } else {
-                    snString = new SpannableString(danmu.userName + "  进入直播间");
-                    snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showInteract)),0, danmu.userName.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    snString = new SpannableString(danmu.getUserName() + "  进入直播间");
+                    snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showInteract)),0, danmu.getUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                 }
                 danmuViewHolder.danmuTextView.setText(snString);
                 //LogUtils.i("show member in:" + danmu.userName);
             }
-        } else if(danmu.cmd.equals("log")){
-            snString = new SpannableString("日志：" + danmu.danmuText + " 时间：" +  danmu.userName);
+        } else if(danmu.getCmd().equals("log")){
+            snString = new SpannableString("日志：" + danmu.getDanmuText() + " 时间：" +  danmu.getUserName());
             snString.setSpan(new ForegroundColorSpan(Color.parseColor("#e60012")),0, 3, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             danmuViewHolder.danmuTextView.setText(snString);
         }

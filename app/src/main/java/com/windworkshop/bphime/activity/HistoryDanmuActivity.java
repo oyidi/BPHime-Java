@@ -1,4 +1,4 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.activity;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -8,6 +8,10 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 
+import com.windworkshop.bphime.database.LiveHistoryDatabase;
+import com.windworkshop.bphime.object.DanmuItem;
+import com.windworkshop.bphime.R;
+
 import java.util.ArrayList;
 
 public class HistoryDanmuActivity extends AppCompatActivity {
@@ -15,7 +19,7 @@ public class HistoryDanmuActivity extends AppCompatActivity {
     DanmuListAdapter adapter;
     RecyclerView listView;
     ArrayList<DanmuItem> historyDanmu = new ArrayList<DanmuItem>();
-    HistoryData historyData;
+    LiveHistoryDatabase historyData;
 
     int pastVisiblesItems, visibleItemCount, totalItemCount;
     LinearLayoutManager linearLayoutManager;
@@ -45,7 +49,7 @@ public class HistoryDanmuActivity extends AppCompatActivity {
             }
         };
         listView.setLayoutManager(linearLayoutManager);
-        historyData = new HistoryData(getApplicationContext());
+        historyData = new LiveHistoryDatabase(getApplicationContext());
 
         listView.addOnScrollListener(new RecyclerView.OnScrollListener(){
             @Override
@@ -72,7 +76,7 @@ public class HistoryDanmuActivity extends AppCompatActivity {
     private void loadHistoryDanmu() {
         loading = true;
 
-        ArrayList<DanmuItem> danmus = historyData.loadHistory(page);
+        ArrayList<DanmuItem> danmus = historyData.loadDanmuHistory(page);
         if(danmus.size() > 0){
             historyDanmu.addAll(danmus);
             adapter.notifyDataSetChanged();

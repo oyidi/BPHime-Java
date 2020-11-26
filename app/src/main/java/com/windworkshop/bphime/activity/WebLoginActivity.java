@@ -1,4 +1,4 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.activity;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -16,6 +16,7 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import com.apkfuns.logutils.LogUtils;
+import com.windworkshop.bphime.R;
 
 import java.util.HashMap;
 import java.util.Map;

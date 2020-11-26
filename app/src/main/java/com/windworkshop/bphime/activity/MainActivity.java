@@ -1,4 +1,4 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.activity;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
@@ -31,6 +31,9 @@ import android.widget.Toast;
 
 import com.apkfuns.logutils.LogUtils;
 import com.baidu.mobstat.StatService;
+import com.windworkshop.bphime.object.DanmuItem;
+import com.windworkshop.bphime.service.NotificationService;
+import com.windworkshop.bphime.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,8 +55,8 @@ public class MainActivity extends AppCompatActivity {
                 startButton.setText(R.string.stop);
             } else if(msg.what == NotificationService.RECIVE_DANMU) {
                 DanmuItem danmu = (DanmuItem) msg.obj;
-                if(danmu.cmd != null) {
-                    if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
+                if(danmu.getCmd() != null) {
+                    if(danmu.getCmd().equals("DANMU_MSG") || danmu.getCmd().equals("SEND_GIFT")) {
                         adapter.addDanmu(danmu);
                         handler.post(updateDanmuListRunnable);
                     }
@@ -92,9 +95,9 @@ public class MainActivity extends AppCompatActivity {
                     handler.post(updateDanmuListRunnable);
                 } else { // 普通弹幕
                     DanmuItem danmu = intent.getParcelableExtra("danmu_item");
-                    if(danmu.cmd != null) {
-                        if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log") || danmu.cmd.equals("INTERACT_WORD")) {
-                            if(danmu.cmd.equals("INTERACT_WORD")) {
+                    if(danmu.getCmd() != null) {
+                        if(danmu.getCmd().equals("DANMU_MSG") || danmu.getCmd().equals("SEND_GIFT") || danmu.getCmd().equals("log") || danmu.getCmd().equals("INTERACT_WORD")) {
+                            if(danmu.getCmd().equals("INTERACT_WORD")) {
                                 if(isMemberIn) {
                                     adapter.addDanmu(danmu);
                                 }
@@ -131,9 +134,9 @@ public class MainActivity extends AppCompatActivity {
                     isMemberIn = sp.getBoolean("is_show_member_in",false);
                     ArrayList<DanmuItem> danmuItems = intent.getParcelableArrayListExtra("danmu_items");
                     for(DanmuItem danmu : danmuItems){
-                        if(danmu.cmd != null) {
-                            if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT") || danmu.cmd.equals("log") || danmu.cmd.equals("INTERACT_WORD")) {
-                                if(danmu.cmd.equals("INTERACT_WORD")) {
+                        if(danmu.getCmd() != null) {
+                            if(danmu.getCmd().equals("DANMU_MSG") || danmu.getCmd().equals("SEND_GIFT") || danmu.getCmd().equals("log") || danmu.getCmd().equals("INTERACT_WORD")) {
+                                if(danmu.getCmd().equals("INTERACT_WORD")) {
                                     if(isMemberIn) {
                                         adapter.addDanmu(danmu);
                                     }
@@ -265,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         LogUtils.i( "onResume");
-        if(!isServiceRun(getApplicationContext(), "com.windworkshop.bphime.NotificationService")) {
+        if(!isServiceRun(getApplicationContext(), "com.windworkshop.bphime.service.NotificationService")) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 getApplicationContext().startForegroundService(new Intent(this, NotificationService.class));
             } else {
@@ -289,17 +292,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    /**
-     * 封包类型
-     */
-    enum PacketType {
-        CLIENT_HEARTBEAT(2), COMMAND(5), JOIN_ROOM(7), SERVER_HEARTBEAT(8);
-        int id;
-        PacketType(int id){
-            this.id = id;
-        }
 
-    }
 
 
     /**

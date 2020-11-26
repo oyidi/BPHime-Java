@@ -1,7 +1,9 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.object;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import com.windworkshop.bphime.service.NotificationService;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -130,5 +132,93 @@ public class DanmuItem implements Parcelable {
         parcel.writeLong(receiveTime);
         parcel.writeString(receiveTimeString);
         parcel.writeLong(uid);
+    }
+
+    public String getDanmuData() {
+        return danmuData;
+    }
+
+    public void setDanmuData(String danmuData) {
+        this.danmuData = danmuData;
+    }
+
+    public String getCmd() {
+        return cmd;
+    }
+
+    public void setCmd(String cmd) {
+        this.cmd = cmd;
+    }
+
+    public String getDanmuText() {
+        return danmuText;
+    }
+
+    public void setDanmuText(String danmuText) {
+        this.danmuText = danmuText;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getGiftName() {
+        return giftName;
+    }
+
+    public void setGiftName(String giftName) {
+        this.giftName = giftName;
+    }
+
+    public String getGiftUserName() {
+        return giftUserName;
+    }
+
+    public void setGiftUserName(String giftUserName) {
+        this.giftUserName = giftUserName;
+    }
+
+    public int getGiftNum() {
+        return giftNum;
+    }
+
+    public void setGiftNum(int giftNum) {
+        this.giftNum = giftNum;
+    }
+
+    public String getWelcomeName() {
+        return welcomeName;
+    }
+
+    public void setWelcomeName(String welcomeName) {
+        this.welcomeName = welcomeName;
+    }
+
+    public long getReceiveTime() {
+        return receiveTime;
+    }
+
+    public void setReceiveTime(long receiveTime) {
+        this.receiveTime = receiveTime;
+    }
+
+    public String getReceiveTimeString() {
+        return receiveTimeString;
+    }
+
+    public void setReceiveTimeString(String receiveTimeString) {
+        this.receiveTimeString = receiveTimeString;
+    }
+
+    public long getUid() {
+        return uid;
+    }
+
+    public void setUid(long uid) {
+        this.uid = uid;
     }
 }

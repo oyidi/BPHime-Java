@@ -1,4 +1,4 @@
-package com.windworkshop.bphime;
+package com.windworkshop.bphime.service;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -18,6 +18,13 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.widget.Toast;
 
 import com.apkfuns.logutils.LogUtils;
+import com.windworkshop.bphime.MainModule;
+import com.windworkshop.bphime.R;
+import com.windworkshop.bphime.activity.MainActivity;
+import com.windworkshop.bphime.database.LiveHistoryDatabase;
+import com.windworkshop.bphime.object.DanmuItem;
+import com.windworkshop.bphime.object.LivePacket;
+import com.windworkshop.bphime.object.PacketType;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
@@ -55,7 +62,7 @@ public class NotificationService extends Service {
     Vibrator vibrator;
     public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static SimpleDateFormat sdfmini = new SimpleDateFormat("HH:mm:ss");
-    HistoryData historyData;
+    LiveHistoryDatabase historyData;
 
     ArrayList<DanmuItem> danmuData = new ArrayList<DanmuItem>();
     @Override
@@ -122,7 +129,7 @@ public class NotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         MainModule.setContext(getApplicationContext());
-        historyData = new HistoryData(getApplicationContext());
+        historyData = new LiveHistoryDatabase(getApplicationContext());
         sp = getSharedPreferences("config",Context.MODE_PRIVATE);
         loadProfile();
         vibrator = (Vibrator) getSystemService(Service.VIBRATOR_SERVICE);
@@ -269,9 +276,9 @@ public class NotificationService extends Service {
                                 for(int i = 0;i < danmus.length();i++) {
                                     JSONObject danmu = danmus.getJSONObject(i);
                                     DanmuItem danmuItem = new DanmuItem("DANMU_MSG", danmu.getString("text"), danmu.getString("nickname"));
-                                    if(!danmuItem.cmd.equals("EMPTY")) { // 检查是否为有效弹幕
-                                        danmuItem.receiveTime = danmu.getJSONObject("check_info").getLong("ts")*1000;
-                                        danmuItem.receiveTimeString = sdfmini.format(danmuItem.receiveTime);
+                                    if(!danmuItem.getCmd().equals("EMPTY")) { // 检查是否为有效弹幕
+                                        danmuItem.setReceiveTime(danmu.getJSONObject("check_info").getLong("ts")*1000);
+                                        danmuItem.setReceiveTimeString(sdfmini.format(danmuItem.getReceiveTime()));
                                         danmuList.add(danmuItem); // 添加到返回Activitry弹幕列表
                                         danmuData.add(danmuItem); // 添加到总弹幕列表
                                     }
@@ -407,14 +414,15 @@ public class NotificationService extends Service {
             // 处理读出封包数据
             for(String dataString : dataArray) {
                 DanmuItem danmu = new DanmuItem(dataString);
-                if(danmu.cmd != null) {
-                    if(danmu.cmd.equals("DANMU_MSG") || danmu.cmd.equals("SEND_GIFT")) {
-                        if(danmu.cmd.equals("DANMU_MSG")) {
-                            builder.setContentText(danmu.userName+" : "+danmu.danmuText);
-                            historyData.addHistory(roomId, danmu, new Date().getTime());
-                            LogUtils.i("收到弹幕：" + danmu.userName + ":" + danmu.danmuText);
-                        } else if(danmu.cmd.equals("SEND_GIFT")) {
-                            builder.setContentText(danmu.giftUserName + " 赠送 " + danmu.giftNum + " 个" + danmu.giftName);
+                if(danmu.getCmd() != null) {
+                    if(danmu.getCmd().equals("DANMU_MSG") || danmu.getCmd().equals("SEND_GIFT")) {
+                        if(danmu.getCmd().equals("DANMU_MSG")) {
+                            builder.setContentText(danmu.getUserName()+" : "+danmu.getDanmuText());
+                            historyData.addDanmuHistory(roomId, danmu, new Date().getTime());
+                            LogUtils.i("收到弹幕：" + danmu.getUserName() + ":" + danmu.getDanmuText());
+                        } else if(danmu.getCmd().equals("SEND_GIFT")) {
+                            builder.setContentText(danmu.getGiftUserName() + " 赠送 " + danmu.getGiftNum() + " 个" + danmu.getGiftName());
+                            historyData.addGiftHistory(roomId, danmu, new Date().getTime());
                         }
                         notificationManager.notify(NEW_DANMU, builder.build());
                         if(vibrateNotification == true) {
@@ -466,7 +474,7 @@ public class NotificationService extends Service {
             */
             // 连接没有被关闭，发送心跳包
             if(client.isClosed() == false){
-                LivePacket packet = LivePacket.createPacket(MainActivity.PacketType.CLIENT_HEARTBEAT);
+                LivePacket packet = LivePacket.createPacket(PacketType.CLIENT_HEARTBEAT);
                 client.send(packet.toBuffer());
                 //LogUtils.i( "heartBell");
                 // 心跳包30秒一发
