@@ -23,7 +23,7 @@ public class LiveHistoryDatabase {
         cv.put("room_id", roomId);
         cv.put("uid", danmu.getUid());
         cv.put("username", danmu.getUserName());
-        cv.put("context", danmu.getDanmuText());
+        cv.put("danmu_text", danmu.getDanmuText());
         cv.put("revice_time", time);
         db.insert("danmu", null, cv);
         //db.execSQL("insert into danmu ('room', ) values ('"+roomId+"', danmu)");
@@ -35,7 +35,9 @@ public class LiveHistoryDatabase {
         Cursor cursor = db.rawQuery("select * from danmu order by id desc limit ?, 100", new String[]{""+page});
         //cursor.moveToFirst();
         while (cursor.moveToNext()) {
-            DanmuItem item = new DanmuItem(cursor.getString(cursor.getColumnIndex("username")), cursor.getString(cursor.getColumnIndex("context")),
+            DanmuItem item = new DanmuItem(cursor.getInt(cursor.getColumnIndex("uid")),
+                    cursor.getString(cursor.getColumnIndex("username")),
+                    cursor.getString(cursor.getColumnIndex("danmu_text")),
                     cursor.getLong(cursor.getColumnIndex("revice_time")));
             danmus.add(item);
         }
@@ -47,12 +49,29 @@ public class LiveHistoryDatabase {
         ContentValues cv = new ContentValues();
         cv.put("room_id", roomId);
         cv.put("uid", danmu.getUid());
-        cv.put("username", danmu.getUserName());
+        cv.put("username", danmu.getGiftUserName());
         cv.put("gift_name", danmu.getGiftName());
         cv.put("gift_count", danmu.getGiftNum());
         cv.put("revice_time", time);
         db.insert("gift", null, cv);
     }
+    public ArrayList<DanmuItem> loadGiftHistory(int page) {
+        page = page * 100;
+        ArrayList<DanmuItem> danmus = new ArrayList<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery("select * from gift order by id desc limit ?, 100", new String[]{""+page});
+        //cursor.moveToFirst();
+        while (cursor.moveToNext()) {
+            DanmuItem item = new DanmuItem(cursor.getInt(cursor.getColumnIndex("uid")),
+                    cursor.getString(cursor.getColumnIndex("username")),
+                    cursor.getString(cursor.getColumnIndex("gift_name")),
+                    cursor.getInt(cursor.getColumnIndex("gift_count")),
+                    cursor.getLong(cursor.getColumnIndex("revice_time")));
+            danmus.add(item);
+        }
+        return danmus;
+    }
+
     class LiveHistoryDataBaseOpenHelper extends SQLiteOpenHelper {
 
         public LiveHistoryDataBaseOpenHelper(@Nullable Context context, @Nullable String name, @Nullable SQLiteDatabase.CursorFactory factory, int version) {

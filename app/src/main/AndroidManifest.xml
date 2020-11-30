@@ -22,6 +22,7 @@
         </activity>
         <activity android:name=".activity.SettingActivity"/>
         <activity android:name=".activity.HistoryDanmuActivity"/>
+        <activity android:name=".activity.GiftStatisticsActivity"/>
         <activity android:name=".activity.WebLoginActivity"/>
         <service
             android:name=".service.NotificationService"

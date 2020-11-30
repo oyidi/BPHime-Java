@@ -5,6 +5,10 @@
         android:icon="@android:drawable/ic_menu_recent_history"
         android:title="@string/main_menu_histoty_text" />
     <item
+        android:id="@+id/main_menu_gift"
+        android:icon="@android:drawable/ic_menu_set_as"
+        android:title="礼物记录" />
+    <item
         android:id="@+id/main_menu_setting"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="@string/main_menu_setting_text"/>

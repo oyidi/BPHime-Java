@@ -65,7 +65,7 @@ public class DanmuListAdapter extends RecyclerView.Adapter<DanmuListAdapter.Danm
                 String receiveTimeString = "[" + danmu.getReceiveTimeString() + "] ";
                 snString = new SpannableString(receiveTimeString + danmu.getGiftUserName() + " 赠送 " + danmu.getGiftNum() + " 个" + danmu.getGiftName());
                 snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.showTime)),0, receiveTimeString.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),receiveTimeString.length(), receiveTimeString.length() + danmu.getGiftUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)), receiveTimeString.length(), receiveTimeString.length() + danmu.getGiftUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             } else {
                 snString = new SpannableString(danmu.getGiftUserName() + " 赠送 " + danmu.getGiftNum() + " 个" + danmu.getGiftName());
                 snString.setSpan(new ForegroundColorSpan(danmuViewHolder.itemView.getContext().getResources().getColor(R.color.danmuUsername)),0, danmu.getGiftUserName().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);

@@ -29,18 +29,37 @@ public class DanmuItem implements Parcelable {
     }
 
     /**
-     * 数据库加载用
+     * 数据库加载弹幕用
      * @param username
      * @param text
      * @param time
      */
-    public DanmuItem(String username, String text, long time) {
+    public DanmuItem(long uid, String username, String text, long time) {
         this.cmd = "DANMU_MSG";
+        this.uid = uid;
         this.userName = username;
         this.danmuText = text;
         this.receiveTime = time;
         this.receiveTimeString = NotificationService.sdf.format(receiveTime);
     }
+
+    /**
+     * 数据库加载礼物记录用
+     * @param uid
+     * @param giftUserName
+     * @param giftName
+     * @param giftNum
+     */
+    public DanmuItem(long uid, String giftUserName, String giftName, int giftNum, long time) {
+        this.cmd = "SEND_GIFT";
+        this.uid = uid;
+        this.giftUserName = giftUserName;
+        this.giftName = giftName;
+        this.giftNum = giftNum;
+        this.receiveTime = time;
+        this.receiveTimeString = NotificationService.sdf.format(receiveTime);
+    }
+
     public DanmuItem(String rawdata) {
         danmuData = rawdata;
         // 初始化弹幕并进行分类

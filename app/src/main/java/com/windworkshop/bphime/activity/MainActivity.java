@@ -241,6 +241,8 @@ public class MainActivity extends AppCompatActivity {
             public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
                 if(menuItem.getItemId() == R.id.main_menu_histoty) {
                     startActivity(new Intent(getApplicationContext(), HistoryDanmuActivity.class));
+                } else if(menuItem.getItemId() == R.id.main_menu_gift) {
+                    startActivity(new Intent(getApplicationContext(), GiftStatisticsActivity.class));
                 } else if(menuItem.getItemId() == R.id.main_menu_setting) {
                     startActivity(new Intent(getApplicationContext(), SettingActivity.class));
                 }
