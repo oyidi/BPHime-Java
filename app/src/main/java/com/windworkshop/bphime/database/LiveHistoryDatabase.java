@@ -71,6 +71,21 @@ public class LiveHistoryDatabase {
         }
         return danmus;
     }
+    public ArrayList<DanmuItem> groupGiftHistory() {
+        ArrayList<DanmuItem> danmus = new ArrayList<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery("select uid, username, gift_name, sum(gift_count) as count from gift group by username, gift_name order by uid desc ", new String[]{});
+        //cursor.moveToFirst();
+        while (cursor.moveToNext()) {
+            DanmuItem item = new DanmuItem(cursor.getInt(cursor.getColumnIndex("uid")),
+                    cursor.getString(cursor.getColumnIndex("username")),
+                    cursor.getString(cursor.getColumnIndex("gift_name")),
+                    cursor.getInt(cursor.getColumnIndex("count")),
+                    cursor.getLong(0));
+            danmus.add(item);
+        }
+        return danmus;
+    }
 
     class LiveHistoryDataBaseOpenHelper extends SQLiteOpenHelper {
 
@@ -80,9 +95,9 @@ public class LiveHistoryDatabase {
 
         @Override
         public void onCreate(SQLiteDatabase sqLiteDatabase) {
-            sqLiteDatabase.execSQL("create table if not exists danmu(id int primary key, room_id text, uid int, username text, danmu_text text, revice_time int)");
-            sqLiteDatabase.execSQL("create table if not exists gift(id int primary key, room_id text, uid int, username text, gift_name text, gift_count int, revice_time int)");
-            sqLiteDatabase.execSQL("create table if not exists interact(id int primary key, room_id text, uid int, username text, revice_time int)");
+            sqLiteDatabase.execSQL("create table if not exists danmu(id int primary key autoincrement, room_id text, uid int, username text, danmu_text text, revice_time int)");
+            sqLiteDatabase.execSQL("create table if not exists gift(id int primary key autoincrement, room_id text, uid int, username text, gift_name text, gift_count int, revice_time int)");
+            sqLiteDatabase.execSQL("create table if not exists interact(id int primary key autoincrement, room_id text, uid int, username text, revice_time int)");
         }
 
         @Override

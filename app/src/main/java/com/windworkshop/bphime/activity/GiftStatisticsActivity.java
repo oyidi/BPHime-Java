@@ -78,6 +78,8 @@ public class GiftStatisticsActivity extends AppCompatActivity {
             }
         });
         loadHistoryDanmu();
+        ArrayList<DanmuItem> staticsDanmus = historyData.groupGiftHistory();
+
     }
     private void loadHistoryDanmu() {
         loading = true;
